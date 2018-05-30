@@ -1,7 +1,9 @@
 fn move_tower(disc: u8, source: &mut Vec<u8>, dest: &mut Vec<u8>, spare: &mut Vec<u8>) {
     if disc == 0 {
+        println!("DEBUG BASE CASE: Source {:?}, Dest {:?}, Spare {:?}", source, dest, spare);
         if let Some(i) = source.pop() {
             dest.push(i);
+            println!("DEBUGa: _DISC_: {}, Source {:?}, Dest {:?}, Spare {:?}", disc, source, dest, spare);
         } else {
             panic!("Unable to pop from \"source\" stack!");
         }
@@ -9,10 +11,12 @@ fn move_tower(disc: u8, source: &mut Vec<u8>, dest: &mut Vec<u8>, spare: &mut Ve
         move_tower(disc - 1, source, spare, dest);
         if let Some(i) = source.pop() {
             dest.push(i);
+            println!("DEBUGc: _DISC_: {}, Source {:?}, Dest {:?}, Spare {:?}", disc, source, dest, spare);
         } else {
             panic!("Unable to pop from \"source\" stack!");
         }
         move_tower(disc - 1, spare, dest, source);
+        println!("DEBUGe: _DISC_: {}, Source {:?}, Dest {:?}, Spare {:?}", disc, source, dest, spare);
     }
     // println!("You've asked me to move disc {}", disc);
 }
