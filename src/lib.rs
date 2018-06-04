@@ -15,9 +15,9 @@ impl Peg {
 
 #[derive(Debug)]
 pub struct Board {
-    left: Peg,
-    middle: Peg,
-    right: Peg,
+    pub left: Peg,
+    pub middle: Peg,
+    pub right: Peg,
 }
 
 impl Board {
@@ -30,19 +30,19 @@ impl Board {
     }
 }
 
-pub fn move_tower(disc: u8, source: &mut Vec<u8>, dest: &mut Vec<u8>, spare: &mut Vec<u8>) {
+pub fn move_tower(disc: u8, source: &mut Peg, dest: &mut Peg, spare: &mut Peg) {
     if disc == 0 {
         println!("DEBUG BASE CASE: Source {:?}, Dest {:?}, Spare {:?}", source, dest, spare);
-        if let Some(i) = source.pop() {
-            dest.push(i);
+        if let Some(i) = source.0.pop() {
+            dest.0.push(i);
             println!("DEBUGa: _DISC_: {}, Source {:?}, Dest {:?}, Spare {:?}", disc, source, dest, spare);
         } else {
             panic!("Unable to pop from \"source\" stack!");
         }
     } else {
         move_tower(disc - 1, source, spare, dest);
-        if let Some(i) = source.pop() {
-            dest.push(i);
+        if let Some(i) = source.0.pop() {
+            dest.0.push(i);
             println!("DEBUGc: _DISC_: {}, Source {:?}, Dest {:?}, Spare {:?}", disc, source, dest, spare);
         } else {
             panic!("Unable to pop from \"source\" stack!");
