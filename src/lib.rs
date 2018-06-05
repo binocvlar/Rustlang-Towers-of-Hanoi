@@ -1,3 +1,11 @@
+/* Ideas */
+/*
+ * Given that we know that completion time is on the order of (2**n - 1),
+ * I could take a user issued sleep time, and provide an estimated time to
+ * completion. Perhaps even a count-down timer and/or progress bar?
+ *
+ */
+
 /* Imports */
 use std::fmt;
 
@@ -11,10 +19,11 @@ pub struct Peg(Vec<Disc>);
 
 impl Peg {
     pub fn new(capacity: usize, largest_disc: Option<Disc>) -> Self {
+        // FIXME: I'm adding 1 to a user supplied int. If this int is maliciously chosen, this
+        // could panic. Add a bounds check?
         match largest_disc {
             Some(i) => {
-                let mut discs = (0..i + 1).rev().collect::<Vec<Disc>>();
-                Peg(discs)
+                Peg((0..i + 1).rev().collect::<Vec<Disc>>())
             },
             None => Peg(Vec::with_capacity(capacity + 1)),
         }
@@ -24,9 +33,9 @@ impl Peg {
 impl fmt::Display for Peg {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let Peg(peg) = self;
-        let peg_string = peg.iter().map(|x| format!("({})",
-            x.to_string()))
-                .collect::<String>();
+        let peg_string = peg.iter()
+            .map(|x| format!("({})", x.to_string()))
+            .collect::<String>();
         write!(f, "||{}", peg_string)
     }
 }
@@ -41,11 +50,11 @@ pub struct Board {
 }
 
 impl Board {
-    pub fn new(peg_capacity: usize, largest_disc: Disc) -> Self {
+    pub fn new(largest_disc: Disc) -> Self {
         Board {
-            left: Peg::new(peg_capacity, Some(largest_disc)),
-            middle: Peg::new(peg_capacity, None),
-            right: Peg::new(peg_capacity, None),
+            left: Peg::new(largest_disc as usize, Some(largest_disc)),
+            middle: Peg::new(largest_disc as usize, None),
+            right: Peg::new(largest_disc as usize, None),
         }
     }
 }
