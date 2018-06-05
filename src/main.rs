@@ -8,4 +8,8 @@ fn main() {
     let solved_board = solve_game(MAX_DISC, &Board::new(MAX_DISC));
 
     println!("Your solved board is: {:?}", solved_board);
+
+    println!("{}", solved_board.left);
+    println!("{}", solved_board.middle);
+    println!("{}", solved_board.right);
 }
