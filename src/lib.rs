@@ -1,4 +1,6 @@
-#[derive(Debug)]
+use std::fmt;
+
+#[derive(Debug, Clone)]
 pub struct Peg(Vec<u8>);
 
 impl Peg {
@@ -13,7 +15,15 @@ impl Peg {
     }
 }
 
-#[derive(Debug)]
+/*
+impl fmt::Display for Peg {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "({}, {})", self.longitude, self.latitude)
+    }
+}
+*/
+
+#[derive(Debug, Clone)]
 pub struct Board {
     pub left: Peg,
     pub middle: Peg,
@@ -28,6 +38,18 @@ impl Board {
             right: Peg::new(None),
         }
     }
+}
+
+pub fn solve_game(disc: u8, board: &Board) -> Board {
+    let board2 = board.clone();
+    let Board {
+        mut left,
+        mut middle,
+        mut right,
+    } = board2;
+
+    move_tower(disc, &mut left, &mut middle, &mut right);
+    Board { left, middle, right }
 }
 
 pub fn move_tower(disc: u8, source: &mut Peg, dest: &mut Peg, spare: &mut Peg) {

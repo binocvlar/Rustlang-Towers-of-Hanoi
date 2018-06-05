@@ -1,16 +1,11 @@
 extern crate hanoi_simple;
-use hanoi_simple::{move_tower,Board};
+use hanoi_simple::{move_tower,solve_game,Board};
 
 fn main() {
 
     let MAX_DISC: u8 = 10;
 
-    // let b = Board::new(2);
-    let Board {
-        mut left,
-        mut middle,
-        mut right,
-    } = Board::new(MAX_DISC);
+    let solved_board = solve_game(MAX_DISC, &Board::new(MAX_DISC));
 
-    move_tower(MAX_DISC, &mut left, &mut middle, &mut right);
+    println!("Your solved board is: {:?}", solved_board);
 }

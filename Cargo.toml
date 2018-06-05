@@ -1,6 +1,6 @@
 [package]
 name = "hanoi_simple"
 version = "0.1.0"
-authors = ["Richard Phillis <richard.phillis@iseek.com.au>"]
+authors = ["Richard Phillis <rwphillis@gmail.com>"]
 
 [dependencies]
