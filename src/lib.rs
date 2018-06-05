@@ -10,13 +10,13 @@ type Disc = u8;
 pub struct Peg(Vec<Disc>);
 
 impl Peg {
-    pub fn new(largest_disc: Option<Disc>) -> Self {
+    pub fn new(capacity: usize, largest_disc: Option<Disc>) -> Self {
         match largest_disc {
             Some(i) => {
                 let mut discs = (0..i + 1).rev().collect::<Vec<Disc>>();
                 Peg(discs)
             },
-            None => Peg(vec![]),
+            None => Peg(Vec::with_capacity(capacity + 1)),
         }
     }
 }
@@ -41,11 +41,11 @@ pub struct Board {
 }
 
 impl Board {
-    pub fn new(largest_disc: Disc) -> Self {
+    pub fn new(peg_capacity: usize, largest_disc: Disc) -> Self {
         Board {
-            left: Peg::new(Some(largest_disc)),
-            middle: Peg::new(None),
-            right: Peg::new(None),
+            left: Peg::new(peg_capacity, Some(largest_disc)),
+            middle: Peg::new(peg_capacity, None),
+            right: Peg::new(peg_capacity, None),
         }
     }
 }
