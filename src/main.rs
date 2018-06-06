@@ -1,5 +1,5 @@
 extern crate hanoi_simple;
-use hanoi_simple::{move_tower,solve_game,Board};
+use hanoi_simple::{solve_game,Board};
 
 fn main() {
 

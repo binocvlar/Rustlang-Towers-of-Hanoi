@@ -15,25 +15,34 @@ type Disc = u8;
 
 // Peg represents one of three vertical pegs in a game board
 #[derive(Debug, Clone)]
-pub struct Peg(Vec<Disc>);
+pub struct Peg {
+    capacity: usize,
+    stack: Vec<Disc>
+}
 
 impl Peg {
     pub fn new(capacity: usize, largest_disc: Option<Disc>) -> Self {
         // FIXME: I'm adding 1 to a user supplied int. If this int is maliciously chosen, this
         // could panic. Add a bounds check?
         match largest_disc {
-            Some(i) => {
-                Peg((0..i + 1).rev().collect::<Vec<Disc>>())
+            Some(i) => Peg {
+                capacity,
+                stack: (0..i + 1).rev().collect::<Vec<Disc>>(),
             },
-            None => Peg(Vec::with_capacity(capacity + 1)),
+            None => Peg {
+                capacity,
+                stack: Vec::with_capacity(capacity + 1)
+            },
         }
     }
 }
 
 impl fmt::Display for Peg {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let Peg(peg) = self;
-        let peg_string = peg.iter()
+        let empty_peg: Vec<char> = (0..self.capacity)
+            .map(|_| '-')
+            .collect();
+        let peg_string = self.stack.iter()
             .map(|x| format!("({})", x.to_string()))
             .collect::<String>();
         write!(f, "||{}", peg_string)
@@ -68,23 +77,23 @@ pub fn solve_game(disc: Disc, board: &Board) -> Board {
         mut right,
     } = board2;
 
-    move_tower(disc, &mut left, &mut middle, &mut right);
+    move_tower(disc, &mut left.stack, &mut middle.stack, &mut right.stack);
     Board { left, middle, right }
 }
 
-pub fn move_tower(disc: Disc, source: &mut Peg, dest: &mut Peg, spare: &mut Peg) {
+fn move_tower(disc: Disc, source: &mut Vec<Disc>, dest: &mut Vec<Disc>, spare: &mut Vec<Disc>) {
     if disc == 0 {
         println!("DEBUG BASE CASE: Source {:?}, Dest {:?}, Spare {:?}", source, dest, spare);
-        if let Some(i) = source.0.pop() {
-            dest.0.push(i);
+        if let Some(i) = source.pop() {
+            dest.push(i);
             println!("DEBUGa: _DISC_: {}, Source {:?}, Dest {:?}, Spare {:?}", disc, source, dest, spare);
         } else {
             panic!("Unable to pop from \"source\" stack!");
         }
     } else {
         move_tower(disc - 1, source, spare, dest);
-        if let Some(i) = source.0.pop() {
-            dest.0.push(i);
+        if let Some(i) = source.pop() {
+            dest.push(i);
             println!("DEBUGc: _DISC_: {}, Source {:?}, Dest {:?}, Spare {:?}", disc, source, dest, spare);
         } else {
             panic!("Unable to pop from \"source\" stack!");
