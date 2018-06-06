@@ -6,8 +6,12 @@
  *
  */
 
+/* Crates */
+extern crate itertools;
+
 /* Imports */
 use std::fmt;
+use itertools::Itertools;
 
 /* Types */
 // Add a type-synonym for Disc
@@ -39,13 +43,18 @@ impl Peg {
 
 impl fmt::Display for Peg {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let empty_peg: Vec<char> = (0..self.capacity)
-            .map(|_| '-')
+        let empty_peg: Vec<_> = (0..self.capacity)
+            .map(|_| "-".to_string())
             .collect();
-        let peg_string = self.stack.iter()
+        let discs = self.stack.iter()
             .map(|x| format!("({})", x.to_string()))
-            .collect::<String>();
-        write!(f, "||{}", peg_string)
+            .collect::<Vec<_>>();
+        let loaded_peg = discs.iter()
+            .chain(empty_peg.iter())
+            .take(10)
+            .join("");
+
+        write!(f, "||{}", loaded_peg)
     }
 }
 
