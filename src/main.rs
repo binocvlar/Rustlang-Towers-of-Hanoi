@@ -1,4 +1,7 @@
+/* Crates */
 extern crate hanoi_simple;
+
+/* Imports */
 use hanoi_simple::{solve_game,Board};
 
 fn main() {
