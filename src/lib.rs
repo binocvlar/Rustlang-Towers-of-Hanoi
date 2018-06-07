@@ -11,6 +11,7 @@ extern crate itertools;
 
 /* Imports */
 use std::{fmt,thread,time};
+use std::cmp::Ordering;
 use itertools::Itertools;
 
 /* Types */
@@ -18,7 +19,7 @@ use itertools::Itertools;
 type Disc = u8;
 
 // Peg represents one of three vertical pegs in a game board
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Eq)]
 pub struct Peg {
     label: PegLabel,
     capacity: usize,
@@ -44,6 +45,24 @@ impl Peg {
     }
 }
 
+impl PartialOrd for Peg {
+    fn partial_cmp(&self, other: &Peg) -> Option<Ordering> {
+        self.label.partial_cmp(&other.label)
+    }
+}
+
+impl PartialEq for Peg {
+    fn eq(&self, other: &Peg) -> bool {
+        self.label == other.label
+    }
+}
+
+impl Ord for Peg {
+    fn cmp(&self, other: &Peg) -> Ordering {
+        self.label.cmp(&other.label)
+    }
+}
+
 impl fmt::Display for Peg {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let empty_peg: Vec<_> = (0..self.capacity)
@@ -57,15 +76,21 @@ impl fmt::Display for Peg {
             .take(10)
             .join("");
 
-        write!(f, "|{}", loaded_peg)
+        write!(f, "|{:?}: {}", self.label, loaded_peg)
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, PartialOrd, Eq)]
 pub enum PegLabel {
     Left,
     Middle,
     Right,
+}
+
+impl Ord for PegLabel {
+    fn cmp(&self, other: &PegLabel) -> Ordering {
+        self.cmp(&other)
+    }
 }
 
 // Board represents a fixed configuration of three pegs
@@ -109,6 +134,7 @@ fn move_tower(disc: Disc, source: &mut Peg, dest: &mut Peg, spare: &mut Peg) {
             // println!("{}", dest);
             // println!("{}", spare);
             // println!("");
+            display_board(source, dest, spare);
         } else {
             panic!("Unable to pop from \"source\" stack!");
         }
@@ -121,4 +147,19 @@ fn move_tower(disc: Disc, source: &mut Peg, dest: &mut Peg, spare: &mut Peg) {
         }
         move_tower(disc - 1, spare, dest, source);
     }
+}
+
+fn display_board(source: &Peg, dest: &Peg, spare: &Peg) {
+    let (source, dest, spare) = order_peg_references(source, dest, spare);
+    // println!("{:?} {:?} {:?}", source, dest, spare);
+    println!("{}", source);
+    println!("{}", dest);
+    println!("{}", spare);
+    println!("");
+}
+
+fn order_peg_references<'a>(source: &'a Peg, dest: &'a Peg, spare: &'a Peg) -> (&'a Peg, &'a Peg, &'a Peg) {
+    let mut pegs = [source, dest, spare];
+    pegs.sort();
+    (pegs[0], pegs[1], pegs[2])
 }
