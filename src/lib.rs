@@ -7,7 +7,7 @@
  */
 
 /* Crates */
-extern crate itertools;
+#[macro_use] extern crate itertools;
 
 /* Imports */
 use std::{fmt,thread,time};
@@ -17,6 +17,10 @@ use itertools::Itertools;
 /* Types */
 // Add a type-synonym for Disc
 type Disc = u8;
+// This exists just to pretty up my return type, but is declaring it
+// here even uglier?
+type PegTriad<'a> = (&'a Peg, &'a Peg, &'a Peg);
+
 
 // Peg represents one of three vertical pegs in a game board
 #[derive(Debug, Clone, Eq)]
@@ -27,6 +31,7 @@ pub struct Peg {
 }
 
 impl Peg {
+    // Associated function (which constructs a Peg)
     pub fn new(label: PegLabel, capacity: usize, largest_disc: Option<Disc>) -> Self {
         // FIXME: I'm adding 1 to a user supplied int. If this int is maliciously chosen, this
         // could panic. Add a bounds check?
@@ -80,6 +85,11 @@ impl fmt::Display for Peg {
     }
 }
 
+// PegLabel: The ordering of each variant in the definition below is responsible for the ordering
+// of `Peg`'s within a `Board`:
+//
+// "When derived on enums, variants are ordered by their top-to-bottom declaration order."*
+// * From https://doc.rust-lang.org/std/cmp/trait.Ord.html
 #[derive(Debug, Clone, PartialEq, PartialOrd, Eq)]
 pub enum PegLabel {
     Left,
@@ -93,7 +103,7 @@ impl Ord for PegLabel {
     }
 }
 
-// Board represents a fixed configuration of three pegs
+// `Board` represents a fixed configuration of three pegs
 #[derive(Debug, Clone)]
 pub struct Board {
     pub left: Peg,
@@ -102,6 +112,7 @@ pub struct Board {
 }
 
 impl Board {
+    // Associated function (which constructs a `Board`)
     pub fn new(largest_disc: Disc) -> Self {
         Board {
             left: Peg::new(PegLabel::Left, largest_disc as usize, Some(largest_disc)),
@@ -124,16 +135,13 @@ pub fn solve_game(disc: Disc, board: &Board) -> Board {
     Board { left, middle, right }
 }
 
+// Implements approximation of the famous algorithm which solves the "Towers of Hanoi"
+// game using recursion. I've yet to determine the original author of this bad boy.
 fn move_tower(disc: Disc, source: &mut Peg, dest: &mut Peg, spare: &mut Peg) {
     if disc == 0 {
         if let Some(i) = source.stack.pop() {
             dest.stack.push(i);
-            thread::sleep(time::Duration::from_millis(1000));
-            // REMOVING TEMPORARY PRINT IN FAVOUR OF CALL TO FUNCTION
-            // println!("{}", source);
-            // println!("{}", dest);
-            // println!("{}", spare);
-            // println!("");
+            // thread::sleep(time::Duration::from_millis(1000));
             display_board(source, dest, spare);
         } else {
             panic!("Unable to pop from \"source\" stack!");
@@ -142,6 +150,7 @@ fn move_tower(disc: Disc, source: &mut Peg, dest: &mut Peg, spare: &mut Peg) {
         move_tower(disc - 1, source, spare, dest);
         if let Some(i) = source.stack.pop() {
             dest.stack.push(i);
+            display_board(source, dest, spare);
         } else {
             panic!("Unable to pop from \"source\" stack!");
         }
@@ -149,16 +158,21 @@ fn move_tower(disc: Disc, source: &mut Peg, dest: &mut Peg, spare: &mut Peg) {
     }
 }
 
+// Very simple display function
 fn display_board(source: &Peg, dest: &Peg, spare: &Peg) {
-    let (source, dest, spare) = order_peg_references(source, dest, spare);
-    // println!("{:?} {:?} {:?}", source, dest, spare);
+    let (source, dest, spare) = order_pegs(source, dest, spare);
+    // --- // for (a, b, c) in izip!(&source.stack, &dest.stack, &spare.stack) {
+    // --- //     println!("{}     {}     {}", a, b, c);
+    // --- // }
+    // --- // println!("--------------------------");
     println!("{}", source);
     println!("{}", dest);
     println!("{}", spare);
     println!("");
 }
 
-fn order_peg_references<'a>(source: &'a Peg, dest: &'a Peg, spare: &'a Peg) -> (&'a Peg, &'a Peg, &'a Peg) {
+// Helper function that orders `Peg`s based on their `PegLabel` variant.
+fn order_pegs<'a>(source: &'a Peg, dest: &'a Peg, spare: &'a Peg) -> PegTriad<'a> {
     let mut pegs = [source, dest, spare];
     pegs.sort();
     (pegs[0], pegs[1], pegs[2])
