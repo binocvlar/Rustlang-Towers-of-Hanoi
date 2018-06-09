@@ -78,8 +78,7 @@ impl fmt::Display for Peg {
             .collect::<Vec<_>>();
         let loaded_peg = discs.iter()
             .chain(empty_peg.iter())
-            // FIXME: This is hardcoded... Tsk tsk!
-            .take(10)
+            .take(self.capacity)
             .join("");
 
         write!(f, "|{:?}: {}", self.label, loaded_peg)
