@@ -15,11 +15,18 @@ use std::cmp::Ordering;
 use itertools::Itertools;
 
 /* Types */
-// Add a type-synonym for Disc
-type Disc = u8;
+// Add a newtype for Disc
+#[derive(Debug, Clone)]
+pub struct Disc (u8);
+
+impl Disc {
+    pub fn new(disc: u8) -> Self {
+        Disc(disc)
+    }
+}
 
 // Peg represents one of three vertical pegs in a game board
-#[derive(Debug, Clone, Eq)]
+#[derive(Debug, Clone)]
 pub struct Peg {
     label: PegLabel,
     capacity: usize,
@@ -28,14 +35,14 @@ pub struct Peg {
 
 impl Peg {
     // Associated function (which constructs a Peg)
-    pub fn new(label: PegLabel, capacity: usize, largest_disc: Option<Disc>) -> Self {
+    pub fn new(label: PegLabel, capacity: usize, largest_disc: Option<&Disc>) -> Self {
         // FIXME: I'm adding 1 to a user supplied int. If this int is maliciously chosen, this
         // could panic. Add a bounds check?
         match largest_disc {
             Some(i) => Peg {
                 label,
                 capacity,
-                stack: (0..i + 1).rev().collect::<Vec<Disc>>(),
+                stack: (0..i.0 + 1).rev().map(|x| Disc::new(x)).collect::<Vec<Disc>>(),
             },
             None => Peg {
                 label,
@@ -64,10 +71,21 @@ impl Ord for Peg {
     }
 }
 
+// Note that I have implemented the `Eq` trait here, rather than derived it, as deriving it would
+// necessitate that all `Peg` struct members would need to implement this trait as well.
+// From the docs:
+//
+// "This trait can be used with #[derive]. When derived, because Eq has no extra methods, it is only
+// informing the compiler that this is an equivalence relation rather than a partial equivalence
+// relation. Note that the derive strategy requires all fields are Eq, which isn't always desired."
+//
+// From the [Rust docs](https://doc.rust-lang.org/std/cmp/trait.Eq.html)
+impl Eq for Peg {}
+
 impl fmt::Display for Peg {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let discs = self.stack.iter()
-            .map(|x| format!("({})", x.to_string()));
+            .map(|x| format!("({})", x.0.to_string()));
         let padding = (0..self.capacity)
             .map(|_| "-".to_string());
         let loaded_peg = discs.chain(padding)
@@ -106,24 +124,26 @@ pub struct Board {
 
 impl Board {
     // Associated function (which constructs a `Board`)
-    fn new(largest_disc: Disc) -> Self {
+    fn new(largest_disc: &Disc) -> Self {
         Board {
-            left: Peg::new(PegLabel::Left, (largest_disc + 1) as usize, Some(largest_disc)),
-            middle: Peg::new(PegLabel::Middle, (largest_disc + 1) as usize, None),
-            right: Peg::new(PegLabel::Right, (largest_disc + 1) as usize, None),
+            left: Peg::new(PegLabel::Left, (largest_disc.0 + 1) as usize, Some(&largest_disc)),
+            middle: Peg::new(PegLabel::Middle, (largest_disc.0 + 1) as usize, None),
+            right: Peg::new(PegLabel::Right, (largest_disc.0 + 1) as usize, None),
         }
     }
 }
 
 /* Functions */
-pub fn solve_game(disc: Disc) -> Board {
-    let board = Board::new(disc);
-    let board2 = board.clone();
+pub fn solve_game(disc: &Disc) -> Board {
+    // Clear the terminal
+    print!("{}[2J", 27 as char);
     let Board {
         mut left,
         mut middle,
         mut right,
-    } = board2;
+    } = Board::new(disc);
+
+    display_board(&left, &middle, &right);
 
     move_tower(disc, &mut left, &mut middle, &mut right);
     Board { left, middle, right }
@@ -132,39 +152,25 @@ pub fn solve_game(disc: Disc) -> Board {
 // Implements an approximation of the famous algorithm which solves the
 // "Towers of Hanoi" game using recursion. I've yet to determine the original
 // author of this bad boy.
-fn move_tower(disc: Disc, source: &mut Peg, dest: &mut Peg, spare: &mut Peg) {
-    if disc == 0 {
+fn move_tower(disc: &Disc, source: &mut Peg, dest: &mut Peg, spare: &mut Peg) {
+    if disc.0 == 0 {
         if let Some(i) = source.stack.pop() {
             dest.stack.push(i);
-            // thread::sleep(time::Duration::from_millis(1000));
             display_board(source, dest, spare);
         } else {
             panic!("Unable to pop from \"source\" stack!");
         }
     } else {
-        move_tower(disc - 1, source, spare, dest);
+        move_tower(&Disc(disc.0 - 1), source, spare, dest);
         if let Some(i) = source.stack.pop() {
             dest.stack.push(i);
             display_board(source, dest, spare);
         } else {
             panic!("Unable to pop from \"source\" stack!");
         }
-        move_tower(disc - 1, spare, dest, source);
+        move_tower(&Disc::new(disc.0 - 1), spare, dest, source);
     }
 }
-
-/*
-// Peg display function
-fn get_peg_iterator<'a>(peg: &Peg) -> Chain<Iter<'a, String>, String> {
-    // empty_peg should be an iterator
-    let empty_peg = (0..peg.capacity).map(|_| "-".to_string());
-
-    // I AM UP TO HERE :)
-    peg.stack.iter().map(|x| x.to_string())
-                    .chain(&empty_peg)
-                    .take(peg.capacity)
-}
-*/
 
 // `Board` display function
 fn display_board(source: &Peg, dest: &Peg, spare: &Peg) {
@@ -173,19 +179,21 @@ fn display_board(source: &Peg, dest: &Peg, spare: &Peg) {
     pegs.sort();
     let (source, dest, spare) = (pegs[0], pegs[1], pegs[2]);
 
-    for (a, b, c) in izip!(get_peg_display(&source).iter(),
+    // (l, m, r) means (left, middle, right)
+    for (l, m, r) in izip!(get_peg_display(&source).iter(),
                            get_peg_display(&dest).iter(),
                            get_peg_display(&spare).iter()) {
-        println!("{}     {}     {}", a, b, c);
+        println!("{}     {}     {}", l, m, r);
     }
     thread::sleep(time::Duration::from_millis(1000));
+    // Clear the terminal
     print!("{}[2J", 27 as char);
 }
 
 fn get_peg_display(peg: &Peg) -> Vec<String> {
     // Convert Vec<u8> to Iterator of Strings
     let discs = peg.stack.iter()
-                   .map(|x| x.to_string())
+                   .map(|x| format!("{}", x.0.to_string()))
                    .rev();
     // Create the required amount of padding, and chain the `discs` iterator
     // of strings onto the end of this padding.
