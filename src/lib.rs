@@ -78,6 +78,7 @@ impl fmt::Display for Peg {
             .collect::<Vec<_>>();
         let loaded_peg = discs.iter()
             .chain(empty_peg.iter())
+            // FIXME: This is hardcoded... Tsk tsk!
             .take(10)
             .join("");
 
@@ -158,22 +159,73 @@ fn move_tower(disc: Disc, source: &mut Peg, dest: &mut Peg, spare: &mut Peg) {
     }
 }
 
-// Very simple display function
-fn display_board(source: &Peg, dest: &Peg, spare: &Peg) {
-    let (source, dest, spare) = order_pegs(source, dest, spare);
-    // --- // for (a, b, c) in izip!(&source.stack, &dest.stack, &spare.stack) {
-    // --- //     println!("{}     {}     {}", a, b, c);
-    // --- // }
-    // --- // println!("--------------------------");
-    println!("{}", source);
-    println!("{}", dest);
-    println!("{}", spare);
-    println!("");
-}
+/*
+// Peg display function
+fn get_peg_iterator<'a>(peg: &Peg) -> Chain<Iter<'a, String>, String> {
+    // empty_peg should be an iterator
+    let empty_peg = (0..peg.capacity).map(|_| "-".to_string());
 
-// Helper function that orders `Peg`s based on their `PegLabel` variant.
-fn order_pegs<'a>(source: &'a Peg, dest: &'a Peg, spare: &'a Peg) -> PegTriad<'a> {
+    // I AM UP TO HERE :)
+    peg.stack.iter().map(|x| x.to_string())
+                    .chain(&empty_peg)
+                    .take(peg.capacity)
+}
+*/
+
+// Simple display function
+fn display_board(source: &Peg, dest: &Peg, spare: &Peg) {
+    // FIXME!
+    let padding1: Vec<_> = (0..source.capacity).map(|_| "-".to_string()).collect();
+    let padding2: Vec<_> = (0..source.capacity).map(|_| "-".to_string()).collect();
+    let padding3: Vec<_> = (0..source.capacity).map(|_| "-".to_string()).collect();
+
     let mut pegs = [source, dest, spare];
     pegs.sort();
-    (pegs[0], pegs[1], pegs[2])
+    let (source, dest, spare) = (pegs[0], pegs[1], pegs[2]);
+
+    // let _ = disc_peg.stack.iter()
+    //               .map(|x| x.to_string())
+    //               .chain(padding)
+    //               .take(disc_peg.capacity);
+
+    // FIXME! This should be a function
+    let source = source.stack.iter()
+                             .map(|x| x.to_string())
+                             .chain(padding1)
+                             .take(source.capacity).collect::<Vec<_>>();
+    let source = source.iter().rev();
+
+    let dest = dest.stack.iter()
+                         .map(|x| x.to_string())
+                         .chain(padding2)
+                         .take(dest.capacity).collect::<Vec<_>>();
+    let dest = dest.iter().rev();
+
+    let spare = spare.stack.iter()
+                           .map(|x| x.to_string())
+                           .chain(padding3)
+                           .take(spare.capacity).collect::<Vec<_>>();;
+    let spare = spare.iter().rev();
+
+    for (a, b, c) in izip!(source, dest, spare) {
+        println!("{}     {}     {}", a, b, c);
+    }
+    println!("--------------------");
+
+    // This is daggy, but it works
+    // println!("{}", source);
+    // println!("{}", dest);
+    // println!("{}", spare);
+    // println!("");
+}
+
+fn magic(disc_peg: &Peg, padding: Vec<String>) -> () {
+// fn magic(disc_peg: &Peg, padding: Vec<String>) -> iter::Take<iter::Chain<iter::Map<slice::Iter<u8>, [closure@src/lib.rs:202:24: 202:41]>, vec::IntoIter<String>>> {
+    // Using a "let" statement and ';' here to ensure we return unit
+    // The return type would be something like this!
+    // std::iter::Take<std::iter::Chain<std::iter::Map<std::slice::Iter<'_, u8>, [closure@src/lib.rs:202:24: 202:41]>, std::vec::IntoIter<std::string::String>>>
+    let _ = disc_peg.stack.iter()
+                  .map(|x| x.to_string())
+                  .chain(padding)
+                  .take(disc_peg.capacity);
 }
