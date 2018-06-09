@@ -17,9 +17,6 @@ use itertools::Itertools;
 /* Types */
 // Add a type-synonym for Disc
 type Disc = u8;
-// This exists just to pretty up my return type, but is declaring it
-// here even uglier?
-type PegTriad<'a> = (&'a Peg, &'a Peg, &'a Peg);
 
 // Peg represents one of three vertical pegs in a game board
 #[derive(Debug, Clone, Eq)]
@@ -95,7 +92,7 @@ pub enum PegLabel {
 
 impl Ord for PegLabel {
     fn cmp(&self, other: &PegLabel) -> Ordering {
-        self.cmp(&other)
+        self.cmp(other)
     }
 }
 
@@ -109,7 +106,7 @@ pub struct Board {
 
 impl Board {
     // Associated function (which constructs a `Board`)
-    pub fn new(largest_disc: Disc) -> Self {
+    fn new(largest_disc: Disc) -> Self {
         Board {
             left: Peg::new(PegLabel::Left, (largest_disc + 1) as usize, Some(largest_disc)),
             middle: Peg::new(PegLabel::Middle, (largest_disc + 1) as usize, None),
@@ -119,7 +116,8 @@ impl Board {
 }
 
 /* Functions */
-pub fn solve_game(disc: Disc, board: &Board) -> Board {
+pub fn solve_game(disc: Disc) -> Board {
+    let board = Board::new(disc);
     let board2 = board.clone();
     let Board {
         mut left,
@@ -168,57 +166,33 @@ fn get_peg_iterator<'a>(peg: &Peg) -> Chain<Iter<'a, String>, String> {
 }
 */
 
-// Simple display function
+// `Board` display function
 fn display_board(source: &Peg, dest: &Peg, spare: &Peg) {
-    let padding: Vec<_> = (0..source.capacity).map(|_| "-".to_string()).collect();
 
     let mut pegs = [source, dest, spare];
     pegs.sort();
     let (source, dest, spare) = (pegs[0], pegs[1], pegs[2]);
 
-    // let _ = disc_peg.stack.iter()
-    //               .map(|x| x.to_string())
-    //               .chain(padding)
-    //               .take(disc_peg.capacity);
-
-    // FIXME! This should be a function
-    let source = source.stack.iter()
-                             .map(|x| x.to_string())
-                             .chain(padding.clone())
-                             .take(source.capacity).collect::<Vec<_>>();
-    let source = source.iter().rev();
-
-    let dest = dest.stack.iter()
-                         .map(|x| x.to_string())
-                         .chain(padding.clone())
-                         .take(dest.capacity).collect::<Vec<_>>();
-    let dest = dest.iter().rev();
-
-    let spare = spare.stack.iter()
-                           .map(|x| x.to_string())
-                           .chain(padding.clone())
-                           .take(spare.capacity).collect::<Vec<_>>();;
-    let spare = spare.iter().rev();
-
-    for (a, b, c) in izip!(source, dest, spare) {
+    for (a, b, c) in izip!(get_peg_display(&source).iter(),
+                           get_peg_display(&dest).iter(),
+                           get_peg_display(&spare).iter()) {
         println!("{}     {}     {}", a, b, c);
     }
-    println!("--------------------");
-
-    // This is daggy, but it works
-    // println!("{}", source);
-    // println!("{}", dest);
-    // println!("{}", spare);
-    // println!("");
+    thread::sleep(time::Duration::from_millis(1000));
+    print!("{}[2J", 27 as char);
 }
 
-fn magic(disc_peg: &Peg, padding: Vec<String>) -> () {
-// fn magic(disc_peg: &Peg, padding: Vec<String>) -> iter::Take<iter::Chain<iter::Map<slice::Iter<u8>, [closure@src/lib.rs:202:24: 202:41]>, vec::IntoIter<String>>> {
-    // Using a "let" statement and ';' here to ensure we return unit
-    // The return type would be something like this!
-    // std::iter::Take<std::iter::Chain<std::iter::Map<std::slice::Iter<'_, u8>, [closure@src/lib.rs:202:24: 202:41]>, std::vec::IntoIter<std::string::String>>>
-    let _ = disc_peg.stack.iter()
-                  .map(|x| x.to_string())
-                  .chain(padding)
-                  .take(disc_peg.capacity);
+fn get_peg_display(peg: &Peg) -> Vec<String> {
+    // Convert Vec<u8> to Iterator of Strings
+    let discs = peg.stack.iter()
+                   .map(|x| x.to_string())
+                   .rev();
+    // Create the required amount of padding, and chain the `discs` iterator
+    // of strings onto the end of this padding.
+    // Note that I'm collecting into a Vec<String>, as attempting to return
+    // the iterator yields a terribly long return type... FIXME
+    (0..(peg.capacity - peg.stack.len()))
+        .map(|_| String::from("-"))
+        .chain(discs)
+        .collect::<Vec<_>>()
 }
