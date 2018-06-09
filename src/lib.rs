@@ -115,9 +115,9 @@ impl Board {
     // Associated function (which constructs a `Board`)
     pub fn new(largest_disc: Disc) -> Self {
         Board {
-            left: Peg::new(PegLabel::Left, largest_disc as usize, Some(largest_disc)),
-            middle: Peg::new(PegLabel::Middle, largest_disc as usize, None),
-            right: Peg::new(PegLabel::Right, largest_disc as usize, None),
+            left: Peg::new(PegLabel::Left, (largest_disc + 1) as usize, Some(largest_disc)),
+            middle: Peg::new(PegLabel::Middle, (largest_disc + 1) as usize, None),
+            right: Peg::new(PegLabel::Right, (largest_disc + 1) as usize, None),
         }
     }
 }
@@ -135,8 +135,9 @@ pub fn solve_game(disc: Disc, board: &Board) -> Board {
     Board { left, middle, right }
 }
 
-// Implements approximation of the famous algorithm which solves the "Towers of Hanoi"
-// game using recursion. I've yet to determine the original author of this bad boy.
+// Implements an approximation of the famous algorithm which solves the
+// "Towers of Hanoi" game using recursion. I've yet to determine the original
+// author of this bad boy.
 fn move_tower(disc: Disc, source: &mut Peg, dest: &mut Peg, spare: &mut Peg) {
     if disc == 0 {
         if let Some(i) = source.stack.pop() {
@@ -173,10 +174,7 @@ fn get_peg_iterator<'a>(peg: &Peg) -> Chain<Iter<'a, String>, String> {
 
 // Simple display function
 fn display_board(source: &Peg, dest: &Peg, spare: &Peg) {
-    // FIXME!
-    let padding1: Vec<_> = (0..source.capacity).map(|_| "-".to_string()).collect();
-    let padding2: Vec<_> = (0..source.capacity).map(|_| "-".to_string()).collect();
-    let padding3: Vec<_> = (0..source.capacity).map(|_| "-".to_string()).collect();
+    let padding: Vec<_> = (0..source.capacity).map(|_| "-".to_string()).collect();
 
     let mut pegs = [source, dest, spare];
     pegs.sort();
@@ -190,19 +188,19 @@ fn display_board(source: &Peg, dest: &Peg, spare: &Peg) {
     // FIXME! This should be a function
     let source = source.stack.iter()
                              .map(|x| x.to_string())
-                             .chain(padding1)
+                             .chain(padding.clone())
                              .take(source.capacity).collect::<Vec<_>>();
     let source = source.iter().rev();
 
     let dest = dest.stack.iter()
                          .map(|x| x.to_string())
-                         .chain(padding2)
+                         .chain(padding.clone())
                          .take(dest.capacity).collect::<Vec<_>>();
     let dest = dest.iter().rev();
 
     let spare = spare.stack.iter()
                            .map(|x| x.to_string())
-                           .chain(padding3)
+                           .chain(padding.clone())
                            .take(spare.capacity).collect::<Vec<_>>();;
     let spare = spare.iter().rev();
 
