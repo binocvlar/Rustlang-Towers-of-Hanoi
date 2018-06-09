@@ -21,7 +21,6 @@ type Disc = u8;
 // here even uglier?
 type PegTriad<'a> = (&'a Peg, &'a Peg, &'a Peg);
 
-
 // Peg represents one of three vertical pegs in a game board
 #[derive(Debug, Clone, Eq)]
 pub struct Peg {
@@ -70,14 +69,11 @@ impl Ord for Peg {
 
 impl fmt::Display for Peg {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let empty_peg: Vec<_> = (0..self.capacity)
-            .map(|_| "-".to_string())
-            .collect();
         let discs = self.stack.iter()
-            .map(|x| format!("({})", x.to_string()))
-            .collect::<Vec<_>>();
-        let loaded_peg = discs.iter()
-            .chain(empty_peg.iter())
+            .map(|x| format!("({})", x.to_string()));
+        let padding = (0..self.capacity)
+            .map(|_| "-".to_string());
+        let loaded_peg = discs.chain(padding)
             .take(self.capacity)
             .join("");
 
