@@ -28,10 +28,10 @@ impl Disc {
 impl fmt::Display for Disc {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         // FIXME: Just a prototype
-        let max = 3;
+        let max = 9;
         let whitespace = (max - self.0) / 2;
-        let whitespace = (0..whitespace).map(|_| " ").collect::<String>();
-        let horiz_pad = (0..self.0 / 2).map(|_| "-").collect::<String>();
+        let whitespace = (0..whitespace).map(|_| "").collect::<String>();
+        let horiz_pad = (0..self.0 / 2).map(|_| "").collect::<String>();
         write!(f, "{}{}{}{}{}", whitespace, horiz_pad, self.0, horiz_pad, whitespace)
     }
 }
@@ -95,10 +95,13 @@ impl Eq for Peg {}
 
 impl fmt::Display for Peg {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        // Get an iterator over a stack of `String`ified `u8`s
         let discs = self.stack.iter()
             .map(|x| format!("({})", x.0.to_string()));
+        // Get a padding iterator, from 0 to Peg.capacity
         let padding = (0..self.capacity)
             .map(|_| "-".to_string());
+        // Chain the two iterators together - only take Peg.capacity's worth of elements
         let loaded_peg = discs.chain(padding)
             .take(self.capacity)
             .join("");
@@ -169,6 +172,7 @@ pub fn solve_game(disc_size: u8) -> Board {
 fn move_tower(disc_size: u8, source: &mut Peg, dest: &mut Peg, spare: &mut Peg) {
     if disc_size == 0 {
         if let Some(i) = source.stack.pop() {
+            // display_board(source, dest, spare);
             display_board(source, dest, spare);
             dest.stack.push(i);
             display_board(source, dest, spare);
@@ -208,7 +212,7 @@ fn display_board(source: &Peg, dest: &Peg, spare: &Peg) {
 }
 
 fn get_peg_representation(peg: &Peg) -> Vec<String> {
-    // Convert Vec<u8> to Iterator of Strings
+    // Convert Vec<Disc> to Iterator of Strings
     let discs = peg.stack.iter()
                          .map(|x| format!("{}", x))
                          .rev();
@@ -217,7 +221,7 @@ fn get_peg_representation(peg: &Peg) -> Vec<String> {
     // Note that I'm collecting into a Vec<String>, as attempting to return
     // the iterator yields a terribly long return type... FIXME
     (0..(peg.capacity - peg.stack.len()))
-                                 .map(|_| String::from("x"))
+                                 .map(|_| String::from("."))
                                  .chain(discs)
                                  .collect::<Vec<_>>()
 }
