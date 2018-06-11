@@ -79,6 +79,19 @@ impl Disc {
             max,
         }
     }
+
+    fn make_padding(len: u32) -> String {
+        (0..len).map(|_| " ").collect::<String>()
+    }
+}
+
+impl OptionalDisc {
+    // FIXME: Not yet tested
+    fn get_display_padding(&self, pad_length: f64) -> (String, String) {
+        let make_padding = |x| (0..x).map(|_| " ").collect::<String>();
+        let half_pad_len = pad_length / 2.0_f64;
+        (make_padding(half_pad_len.ceil() as u32), make_padding(half_pad_len.floor() as u32))
+    }
 }
 
 impl Peg {
@@ -179,13 +192,23 @@ impl fmt::Display for OptionalDisc {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             OptionalDisc::Some(disc) => {
+                /*
                 let dash_pad = (0..disc.size).map(|_| "-").collect::<String>();
                 let white_pad_len = ((disc.max) + disc.max.to_string().len() as u8) - (dash_pad.len() as u8 + disc.size.to_string().len() as u8);
                 let white_pad = (0..white_pad_len).map(|_| " ").collect::<String>();
                 write!(f, "{}{}{}{}{}", white_pad, dash_pad, disc.size.to_string(), dash_pad, white_pad)
+                */
+                let dashes = (0..disc.size).map(|_| "-").collect::<String>();
+                let max_width = disc.max * 2 + disc.max.to_string().len() as u8;
+                let total_pad_len = max_width - 2 * dashes.len() as u8 - disc.size.to_string().len() as u8;
+                // WRITE A TEST FOR THIS FUNCTION
+                // Given 6, it should return ("---", "---")
+                // Given 7, it should return ("----", "---")
+                let (left_pad, right_pad) = self.get_display_padding(total_pad_len as f64);
+                write!(f, "{}{}{}{}{}", left_pad, dashes, disc.size.to_string(), dashes, right_pad)
             },
             OptionalDisc::None(i) => {
-                let padding = (0..i * 2 + 1).map(|_| " ").collect::<String>();
+                let padding = (0..i * 2 + i.to_string().len() as u8).map(|_| " ").collect::<String>();
                 write!(f, "{}", padding)
             },
         }
@@ -240,7 +263,10 @@ fn move_tower(disc_size: u8, source: &mut Peg, dest: &mut Peg, spare: &mut Peg) 
 
 // `Board` display function
 fn display_board(source: &Peg, dest: &Peg, spare: &Peg) {
+    // Clear the terminal
+    print!("{}[2J", 27 as char);
 
+    // Sort the borrowed `Peg`s
     let mut pegs = [source, dest, spare];
     pegs.sort();
     let (source, dest, spare) = (pegs[0], pegs[1], pegs[2]);
@@ -251,9 +277,8 @@ fn display_board(source: &Peg, dest: &Peg, spare: &Peg) {
                            get_peg_representation(&spare).iter()) {
         println!("|{}|{}|{}|", l, m, r);
     }
+    // Sleep to ensure the board isn't redrawn too quickly
     thread::sleep(time::Duration::from_millis(300));
-    // Clear the terminal
-    print!("{}[2J", 27 as char);
 }
 
 fn get_peg_representation(peg: &Peg) -> Vec<String> {
