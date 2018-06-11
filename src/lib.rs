@@ -15,51 +15,90 @@ use std::cmp::Ordering;
 use itertools::Itertools;
 
 /* Types */
-// Add a newtype for Disc
+// Add an enum for OptionalDisc:
+//     The `u8` carried by the `Disc::Empty` variant signifies the capacity of the `Peg` (A.K.A the
+//     largest `OptionalDisc` on the `Board`).
 #[derive(Debug, Clone)]
-pub struct Disc(u8);
-
-impl Disc {
-    pub fn new(disc: u8) -> Self {
-        Disc(disc)
-    }
+pub enum OptionalDisc {
+    Some(Disc),
+    None(u8),
 }
 
-impl fmt::Display for Disc {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        // FIXME: Just a prototype
-        let max = 9;
-        let whitespace = (max - self.0) / 2;
-        let whitespace = (0..whitespace).map(|_| "").collect::<String>();
-        let horiz_pad = (0..self.0 / 2).map(|_| "").collect::<String>();
-        write!(f, "{}{}{}{}{}", whitespace, horiz_pad, self.0, horiz_pad, whitespace)
-    }
+// Concrete `Disc` type
+#[derive(Debug, Clone)]
+pub struct Disc {
+    size: u8,
+    max: u8,
 }
 
 // Peg represents one of three vertical pegs in a game board
 #[derive(Debug, Clone)]
 pub struct Peg {
     label: PegLabel,
-    capacity: usize,
-    stack: Vec<Disc>
+    capacity: u8,
+    stack: Vec<OptionalDisc>
+}
+
+// PegLabel: The ordering of each variant in the definition below is responsible for the ordering
+// of `Peg`'s within a `Board`:
+//
+// "When derived on enums, variants are ordered by their top-to-bottom declaration order."*
+// * From https://doc.rust-lang.org/std/cmp/trait.Ord.html
+#[derive(Debug, Clone, PartialEq, PartialOrd, Eq)]
+pub enum PegLabel {
+    Left,
+    Middle,
+    Right,
+}
+
+// `Board` represents a fixed configuration of three pegs
+#[derive(Debug, Clone)]
+pub struct Board {
+    pub left: Peg,
+    pub middle: Peg,
+    pub right: Peg,
+}
+
+// impl fmt::Display for Disc {
+//     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+//         // FIXME: Just a prototype
+//         let max = 9;
+//         let whitespace = (max - self.0) / 2;
+//         let whitespace = (0..whitespace).map(|_| "").collect::<String>();
+//         let horiz_pad = (0..self.0 / 2).map(|_| "").collect::<String>();
+//         write!(f, "{}{}{}{}{}", whitespace, horiz_pad, self.0, horiz_pad, whitespace)
+//     }
+// }
+
+
+/* Implementations */
+impl Disc {
+    fn new(size: u8, max: u8) -> Self {
+        Disc {
+            size,
+            max,
+        }
+    }
 }
 
 impl Peg {
-    // Associated function (which constructs a Peg)
-    pub fn new(label: PegLabel, capacity: usize, largest_disc: Option<u8>) -> Self {
-        // FIXME: I'm adding 1 to a user supplied int. If this int is maliciously chosen, this
-        // could panic. Add a bounds check?
-        match largest_disc {
-            Some(i) => Peg {
-                label,
-                capacity,
-                stack: (0..i + 1).rev().map(|x| Disc::new(x)).collect::<Vec<Disc>>(),
-            },
-            None => Peg {
-                label,
-                capacity,
-                stack: Vec::with_capacity(capacity + 1)
-            },
+    // Associated function which constructs a `Peg` loaded with `OptionalDisc::Some`s
+    pub fn new(label: PegLabel, capacity: u8) -> Self {
+        Peg {
+            label,
+            capacity,
+            stack: (0..capacity).map(|x| OptionalDisc::Some(Disc::new(x, capacity)))
+                                .rev()
+                                .collect::<Vec<_>>(),
+        }
+    }
+
+    // Associated function which constructs a `Peg` loaded with `OptionalDisc::None`s
+    fn new_empty(label: PegLabel, capacity: u8) -> Self {
+        Peg {
+			label,
+            capacity,
+            stack: Vec::with_capacity(capacity as usize),
         }
     }
 }
@@ -97,29 +136,17 @@ impl fmt::Display for Peg {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         // Get an iterator over a stack of `String`ified `u8`s
         let discs = self.stack.iter()
-            .map(|x| format!("({})", x.0.to_string()));
+            .map(|x| format!("({})", x.to_string()));
         // Get a padding iterator, from 0 to Peg.capacity
         let padding = (0..self.capacity)
             .map(|_| "-".to_string());
         // Chain the two iterators together - only take Peg.capacity's worth of elements
         let loaded_peg = discs.chain(padding)
-            .take(self.capacity)
+            .take(self.capacity as usize)
             .join("");
 
         write!(f, "|{:?}: {}", self.label, loaded_peg)
     }
-}
-
-// PegLabel: The ordering of each variant in the definition below is responsible for the ordering
-// of `Peg`'s within a `Board`:
-//
-// "When derived on enums, variants are ordered by their top-to-bottom declaration order."*
-// * From https://doc.rust-lang.org/std/cmp/trait.Ord.html
-#[derive(Debug, Clone, PartialEq, PartialOrd, Eq)]
-pub enum PegLabel {
-    Left,
-    Middle,
-    Right,
 }
 
 impl Ord for PegLabel {
@@ -128,21 +155,39 @@ impl Ord for PegLabel {
     }
 }
 
-// `Board` represents a fixed configuration of three pegs
-#[derive(Debug, Clone)]
-pub struct Board {
-    pub left: Peg,
-    pub middle: Peg,
-    pub right: Peg,
-}
-
 impl Board {
     // Associated function (which constructs a `Board`)
-    fn new(largest_disc: u8) -> Self {
+    fn new(capacity: u8) -> Self {
         Board {
-            left: Peg::new(PegLabel::Left, (largest_disc + 1) as usize, Some(largest_disc)),
-            middle: Peg::new(PegLabel::Middle, (largest_disc + 1) as usize, None),
-            right: Peg::new(PegLabel::Right, (largest_disc + 1) as usize, None),
+            left: Peg::new(PegLabel::Left, capacity),
+            middle: Peg::new_empty(PegLabel::Middle, capacity),
+            right: Peg::new_empty(PegLabel::Right, capacity),
+        }
+    }
+}
+
+/* REMINDER:
+ * 
+ * pub enum OptionalDisc {
+ *     Some(u8),
+ *     None(u8),
+ * }
+ *
+ */
+
+impl fmt::Display for OptionalDisc {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            OptionalDisc::Some(disc) => {
+                let dash_pad = (0..disc.size).map(|_| "-").collect::<String>();
+                let white_pad_len = ((disc.max) + disc.max.to_string().len() as u8) - (dash_pad.len() as u8 + disc.size.to_string().len() as u8);
+                let white_pad = (0..white_pad_len).map(|_| " ").collect::<String>();
+                write!(f, "{}{}{}{}{}", white_pad, dash_pad, disc.size.to_string(), dash_pad, white_pad)
+            },
+            OptionalDisc::None(i) => {
+                let padding = (0..i * 2 + 1).map(|_| " ").collect::<String>();
+                write!(f, "{}", padding)
+            },
         }
     }
 }
@@ -206,7 +251,7 @@ fn display_board(source: &Peg, dest: &Peg, spare: &Peg) {
                            get_peg_representation(&spare).iter()) {
         println!("|{}|{}|{}|", l, m, r);
     }
-    thread::sleep(time::Duration::from_millis(1000));
+    thread::sleep(time::Duration::from_millis(300));
     // Clear the terminal
     print!("{}[2J", 27 as char);
 }
@@ -218,10 +263,12 @@ fn get_peg_representation(peg: &Peg) -> Vec<String> {
                          .rev();
     // Create the required amount of padding, and chain the `discs` iterator
     // of strings onto the end of this padding.
+    //
+    // FIXME:
     // Note that I'm collecting into a Vec<String>, as attempting to return
-    // the iterator yields a terribly long return type... FIXME
-    (0..(peg.capacity - peg.stack.len()))
-                                 .map(|_| String::from("."))
-                                 .chain(discs)
-                                 .collect::<Vec<_>>()
+    // the iterator directly yields a terribly long return type...
+    (0..(peg.capacity as usize - peg.stack.len()))
+        .map(|_| format!("{}", OptionalDisc::None(peg.capacity)))
+        .chain(discs)
+        .collect::<Vec<_>>()
 }
