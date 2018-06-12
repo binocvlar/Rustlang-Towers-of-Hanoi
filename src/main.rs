@@ -5,7 +5,5 @@ extern crate hanoi_simple;
 use hanoi_simple::{solve_game};
 
 fn main() {
-
-    let solved_board = solve_game(10);
-
+    let _solved_board = solve_game(3);
 }

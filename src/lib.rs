@@ -62,37 +62,24 @@ pub struct Board {
     pub right: Peg,
 }
 
-// impl fmt::Display for Disc {
-//     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-//         // FIXME: Just a prototype
-//         let max = 9;
-//         let whitespace = (max - self.0) / 2;
-//         let whitespace = (0..whitespace).map(|_| "").collect::<String>();
-//         let horiz_pad = (0..self.0 / 2).map(|_| "").collect::<String>();
-//         write!(f, "{}{}{}{}{}", whitespace, horiz_pad, self.0, horiz_pad, whitespace)
-//     }
-// }
-
-
 /* Implementations */
 impl Disc {
+    // Associated function which constructs a new `Disc`
     fn new(size: u8, max: u8) -> Self {
         Disc {
             size,
             max,
         }
     }
-
-    fn make_padding(len: u32) -> String {
-        (0..len).map(|_| " ").collect::<String>()
-    }
 }
 
 impl OptionalDisc {
-    // FIXME: Not yet tested
-    fn get_display_padding(&self, pad_length: f64) -> (String, String) {
+    fn get_padding(&self, pad_length: f64) -> (String, String) {
+        // This closure simply returns a string commprised of the requested number of spaces
         let make_padding = |x| (0..x).map(|_| " ").collect::<String>();
         let half_pad_len = pad_length / 2.0_f64;
+        // Getting the `ceil` of the left value, and the `floor` of the right value is responsible
+        // for right-aliging the disc number within each disc representation, when displaying a disc
         (make_padding(half_pad_len.ceil() as u32), make_padding(half_pad_len.floor() as u32))
     }
 }
@@ -148,6 +135,10 @@ impl Ord for Peg {
 // From the [Rust docs](https://doc.rust-lang.org/std/cmp/trait.Eq.html)
 impl Eq for Peg {}
 
+// This trait implementation is unused, and will likely be removed soon. It is unused, as printing a
+// horizontal representation of each `Peg` has not been very useful so far. If I was going to keep
+// this around, I'd likely refactor it to construct an exact-sized iterator of padding, to avoid
+// unnecessarity allocating space, and then having to `take()` the required amount.
 impl fmt::Display for Peg {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         // Get an iterator over a stack of `String`ified `u8`s
@@ -182,32 +173,17 @@ impl Board {
     }
 }
 
-/* REMINDER:
- * 
- * pub enum OptionalDisc {
- *     Some(u8),
- *     None(u8),
- * }
- *
- */
-
 impl fmt::Display for OptionalDisc {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             OptionalDisc::Some(disc) => {
-                /*
-                let dash_pad = (0..disc.size).map(|_| "-").collect::<String>();
-                let white_pad_len = ((disc.max) + disc.max.to_string().len() as u8) - (dash_pad.len() as u8 + disc.size.to_string().len() as u8);
-                let white_pad = (0..white_pad_len).map(|_| " ").collect::<String>();
-                write!(f, "{}{}{}{}{}", white_pad, dash_pad, disc.size.to_string(), dash_pad, white_pad)
-                */
                 let dashes = (0..disc.size).map(|_| "-").collect::<String>();
                 let max_width = disc.max * 2 + disc.max.to_string().len() as u8;
                 let total_pad_len = max_width - 2 * dashes.len() as u8 - disc.size.to_string().len() as u8;
                 // WRITE A TEST FOR THIS FUNCTION
                 // Given 6, it should return ("---", "---")
                 // Given 7, it should return ("----", "---")
-                let (left_pad, right_pad) = self.get_display_padding(total_pad_len as f64);
+                let (left_pad, right_pad) = self.get_padding(total_pad_len as f64);
                 write!(f, "{}{}{}{}{}", left_pad, dashes, disc.size.to_string(), dashes, right_pad)
             },
             OptionalDisc::None(i) => {
@@ -246,7 +222,6 @@ pub fn solve_game(disc_tally: u8) -> Board {
 fn move_tower(disc_size: u8, source: &mut Peg, dest: &mut Peg, spare: &mut Peg) {
     if disc_size == 0 {
         if let Some(i) = source.stack.pop() {
-            // display_board(source, dest, spare);
             display_board(source, dest, spare);
             dest.stack.push(i);
             display_board(source, dest, spare);
