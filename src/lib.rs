@@ -8,11 +8,14 @@
 
 /* Crates */
 #[macro_use] extern crate itertools;
+extern crate termion;
 
 /* Imports */
 use std::{fmt,thread,time};
 use std::cmp::Ordering;
 use itertools::Itertools;
+use std::process::exit;
+use termion::cursor;
 
 /* Types */
 // Add an enum for OptionalDisc:
@@ -267,12 +270,28 @@ fn move_tower(disc_size: u8, source: &mut Peg, dest: &mut Peg, spare: &mut Peg) 
 // `Board` display function
 fn display_board(source: &Peg, dest: &Peg, spare: &Peg) {
     // Clear the terminal
-    print!("{}[2J", 27 as char);
+    // print!("{}[2J", 27 as char);
+
+    // Get the `x` and `y` coordinates of the terminal. This is used in order to "jump back" and
+    // redraw the board. This should provide a better appearance than continually redrawing the
+    // board. Only the `y` coordinate is important in this case.
+    let x_y_coords = termion::terminal_size();
+
+    let (_, y) = match x_y_coords {
+        Ok((x, y)) => (x, y),
+        Err(e) => {
+            eprintln!("Unable to get terminal size: '{}'", e);
+            exit(1);
+        },
+    };
 
     // Sort the borrowed `Peg`s
     let mut pegs = [source, dest, spare];
     pegs.sort();
     let (source, dest, spare) = (pegs[0], pegs[1], pegs[2]);
+
+    // Jump-back to the top of the board
+    print!("{}", cursor::Goto(1, y - source.capacity as u16));
 
     // (l, m, r) means (left, middle, right)
     for (l, m, r) in izip!(get_peg_representation(&source).iter(),

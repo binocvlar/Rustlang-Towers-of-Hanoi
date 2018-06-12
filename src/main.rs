@@ -6,6 +6,6 @@ use hanoi_simple::{solve_game};
 
 fn main() {
 
-    let solved_board = solve_game(11);
+    let solved_board = solve_game(10);
 
 }
