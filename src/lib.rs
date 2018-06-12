@@ -216,18 +216,21 @@ impl fmt::Display for OptionalDisc {
 }
 
 /* Functions */
-pub fn solve_game(disc_size: u8) -> Board {
+pub fn solve_game(disc_tally: u8) -> Board {
     // Clear the terminal
     print!("{}[2J", 27 as char);
     let Board {
         mut left,
         mut middle,
         mut right,
-    } = Board::new(disc_size);
+    } = Board::new(disc_tally);
 
     display_board(&left, &middle, &right);
 
-    move_tower(disc_size, &mut left, &mut middle, &mut right);
+    // Note that we must subtract `1` from disc_tally, to convert between the number of discs, and
+    // the size of the largest disc (example: 10 discs, 9 is the largest (0-indexed)).
+    // If you _don't_ subtract 1, you'll panic thanks to an out-by-one error.
+    move_tower(disc_tally - 1, &mut left, &mut middle, &mut right);
 
     display_board(&left, &middle, &right);
 
@@ -278,7 +281,7 @@ fn display_board(source: &Peg, dest: &Peg, spare: &Peg) {
         println!("|{}|{}|{}|", l, m, r);
     }
     // Sleep to ensure the board isn't redrawn too quickly
-    thread::sleep(time::Duration::from_millis(300));
+    thread::sleep(time::Duration::from_millis(100));
 }
 
 fn get_peg_representation(peg: &Peg) -> Vec<String> {
