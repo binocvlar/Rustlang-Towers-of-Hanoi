@@ -34,6 +34,14 @@ pub struct Disc {
     max: u8,
 }
 
+// `Slot` represents a position on a peg which could contain a `Disc`, but is in fact empty
+//     `capacity` represents the capacity that any `Peg` can hold / the size of the largest `Disc`
+//     `repr` is the string representation of the empty slot
+pub struct Slot {
+    capacity: u8,
+    repr: String,
+}
+
 // Peg represents one of three vertical pegs in a game board
 #[derive(Debug, Clone)]
 pub struct Peg {
@@ -74,6 +82,23 @@ impl Disc {
 }
 
 impl OptionalDisc {
+    /* IDEA:
+     *
+     * In a 10 disc game, there are 1023 moves. This means that we end up calling the Display::fmt
+     * trait method for every `OptionalDisc`, on every move. That's a lot of needless calls!
+     * Instead, as the desired representation never changes per disc, this representation could be
+     * calculated at instantiation, and then be carried along with the `OptionalDisc`.
+     *
+     * pub enum OptionalDisc {
+     *     Some(Disc),
+     *     None(u8),
+     * }
+     * pub struct Disc {
+     *     size: u8,
+     *     max: u8,
+     * }
+     */
+
     fn get_padding(&self, pad_length: f64) -> (String, String) {
         // This closure simply returns a string commprised of the requested number of spaces
         let make_padding = |x| (0..x).map(|_| " ").collect::<String>();
@@ -103,6 +128,23 @@ impl Peg {
             capacity,
             stack: Vec::with_capacity(capacity as usize),
         }
+    }
+    // This method returns a `Vec<String>` representing each `OptionalDisc` on the peg
+    fn get_peg_repr(&self) -> Vec<String> {
+        // Convert Vec<Disc> to Iterator of Strings
+        let discs = self.stack.iter()
+                              .map(|x| format!("{}", x))
+                              .rev();
+        // Create the required amount of padding, and chain the `discs` iterator
+        // of strings onto the end of this padding.
+        //
+        // FIXME:
+        // Note that I'm collecting into a Vec<String>, as attempting to return
+        // the iterator directly yields a terribly long return type...
+        (0..(self.capacity as usize - self.stack.len()))
+            .map(|_| format!("{}", OptionalDisc::None(self.capacity)))
+            .chain(discs)
+            .collect::<Vec<_>>()
     }
 }
 
@@ -180,9 +222,6 @@ impl fmt::Display for OptionalDisc {
                 let dashes = (0..disc.size).map(|_| "-").collect::<String>();
                 let max_width = disc.max * 2 + disc.max.to_string().len() as u8;
                 let total_pad_len = max_width - 2 * dashes.len() as u8 - disc.size.to_string().len() as u8;
-                // WRITE A TEST FOR THIS FUNCTION
-                // Given 6, it should return ("---", "---")
-                // Given 7, it should return ("----", "---")
                 let (left_pad, right_pad) = self.get_padding(total_pad_len as f64);
                 write!(f, "{}{}{}{}{}", left_pad, dashes, disc.size.to_string(), dashes, right_pad)
             },
@@ -269,28 +308,11 @@ fn display_board(source: &Peg, dest: &Peg, spare: &Peg) {
     print!("{}", cursor::Goto(1, y - source.capacity as u16));
 
     // (l, m, r) means (left, middle, right)
-    for (l, m, r) in izip!(get_peg_representation(&source).iter(),
-                           get_peg_representation(&dest).iter(),
-                           get_peg_representation(&spare).iter()) {
+    for (l, m, r) in izip!(source.get_peg_repr().iter(),
+                           dest.get_peg_repr().iter(),
+                           spare.get_peg_repr().iter()) {
         println!("|{}|{}|{}|", l, m, r);
     }
     // Sleep to ensure the board isn't redrawn too quickly
     thread::sleep(time::Duration::from_millis(100));
-}
-
-fn get_peg_representation(peg: &Peg) -> Vec<String> {
-    // Convert Vec<Disc> to Iterator of Strings
-    let discs = peg.stack.iter()
-                         .map(|x| format!("{}", x))
-                         .rev();
-    // Create the required amount of padding, and chain the `discs` iterator
-    // of strings onto the end of this padding.
-    //
-    // FIXME:
-    // Note that I'm collecting into a Vec<String>, as attempting to return
-    // the iterator directly yields a terribly long return type...
-    (0..(peg.capacity as usize - peg.stack.len()))
-        .map(|_| format!("{}", OptionalDisc::None(peg.capacity)))
-        .chain(discs)
-        .collect::<Vec<_>>()
 }
