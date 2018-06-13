@@ -67,11 +67,13 @@ impl Disc {
     // Associated function which constructs a new `Disc`
     fn new(size: u8, max: u8) -> Self {
         // Contains a `String` of dashes, e.g. "--------"
-        let dashes = (0..size).map(|_| "-").collect::<String>();
+        let dashes = (0..size).map(|_| "▬").collect::<String>();
+        // FIXME: Display this if terminal does NOT suppot UTF8
+        // let dashes = (0..size).map(|_| "-").collect::<String>();
         // Contains the width of the representation of the largest `Disc`
         let max_width = max * 2 + max.to_string().len() as u8;
         // How much total whitespace padding is required, in order for this `Disc` to line up properly
-        let total_pad_len = max_width - 2 * dashes.len() as u8 - size.to_string().len() as u8;
+        let total_pad_len = max_width - 2 * dashes.chars().count() as u8 - size.to_string().len() as u8;
         // Contains the whitespace on either side of the `Disc` (can differ by 1).
         let (left_pad, right_pad) = Disc::get_padding(total_pad_len as f64);
         // Contains the total textual representation of the new `Disc`
@@ -272,8 +274,8 @@ fn display_board(source: &Peg, dest: &Peg, spare: &Peg) {
     for (l, m, r) in izip!(source.get_peg_repr().iter(),
                            dest.get_peg_repr().iter(),
                            spare.get_peg_repr().iter()) {
-        println!("|{}|{}|{}|", l, m, r);
+        println!("┃{}┃{}┃{}┃", l, m, r);
     }
     // Sleep to ensure the board isn't redrawn too quickly
-    thread::sleep(time::Duration::from_millis(100));
+    // thread::sleep(time::Duration::from_millis(100));
 }
