@@ -13,7 +13,6 @@ extern crate termion;
 /* Imports */
 use std::{fmt,thread,time};
 use std::cmp::Ordering;
-use itertools::Itertools;
 use std::process::exit;
 use termion::{cursor, clear};
 
@@ -32,6 +31,7 @@ pub enum OptionalDisc {
 pub struct Disc {
     size: u8,
     max: u8,
+    repr: String,
 }
 
 // Peg represents one of three vertical pegs in a game board
@@ -39,7 +39,7 @@ pub struct Disc {
 pub struct Peg {
     label: PegLabel,
     capacity: u8,
-    stack: Vec<OptionalDisc>
+    stack: Vec<OptionalDisc>,
 }
 
 // PegLabel: The ordering of each variant in the definition below is responsible for the ordering
@@ -66,33 +66,26 @@ pub struct Board {
 impl Disc {
     // Associated function which constructs a new `Disc`
     fn new(size: u8, max: u8) -> Self {
+        // Contains a `String` of dashes, e.g. "--------"
+        let dashes = (0..size).map(|_| "-").collect::<String>();
+        // Contains the width of the representation of the largest `Disc`
+        let max_width = max * 2 + max.to_string().len() as u8;
+        // How much total whitespace padding is required, in order for this `Disc` to line up properly
+        let total_pad_len = max_width - 2 * dashes.len() as u8 - size.to_string().len() as u8;
+        // Contains the whitespace on either side of the `Disc` (can differ by 1).
+        let (left_pad, right_pad) = Disc::get_padding(total_pad_len as f64);
+        // Contains the total textual representation of the new `Disc`
+        let repr = format!("{}{}{}{}{}", left_pad, dashes, size.to_string(), dashes, right_pad);
         Disc {
             size,
             max,
+            repr,
         }
     }
-}
 
-impl OptionalDisc {
-    /* IDEA:
-     *
-     * In a 10 disc game, there are 1023 moves. This means that we end up calling the Display::fmt
-     * trait method for every `OptionalDisc`, on every move. That's a lot of needless calls!
-     * Instead, as the desired representation never changes per disc, this representation could be
-     * calculated at instantiation, and then be carried along with the `OptionalDisc`.
-     *
-     * pub enum OptionalDisc {
-     *     Some(Disc),
-     *     None(u8),
-     * }
-     * pub struct Disc {
-     *     size: u8,
-     *     max: u8,
-     * }
-     */
-
-    fn get_padding(&self, pad_length: f64) -> (String, String) {
-        // This closure simply returns a string commprised of the requested number of spaces
+    // Return example: ("   ", "  ")
+    fn get_padding(pad_length: f64) -> (String, String) {
+        // This closure simply returns a string comprised of the requested number of spaces
         let make_padding = |x: u32| (0..x).map(|_| " ").collect::<String>();
         let half_pad_len = pad_length / 2.0_f64;
         // Getting the `ceil` of the left value, and the `floor` of the right value is responsible
@@ -131,7 +124,6 @@ impl Peg {
         // Create the required amount of padding, and chain the `discs` iterator
         // of strings onto the end of this padding.
         //
-        // FIXME:
         // Note that I'm collecting into a Vec<String>, as attempting to return
         // the iterator directly yields a terribly long return type...
         (0..(self.capacity as usize - self.stack.len()))
@@ -191,11 +183,7 @@ impl fmt::Display for OptionalDisc {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             OptionalDisc::Some(disc) => {
-                let dashes = (0..disc.size).map(|_| "-").collect::<String>();
-                let max_width = disc.max * 2 + disc.max.to_string().len() as u8;
-                let total_pad_len = max_width - 2 * dashes.len() as u8 - disc.size.to_string().len() as u8;
-                let (left_pad, right_pad) = self.get_padding(total_pad_len as f64);
-                write!(f, "{}{}{}{}{}", left_pad, dashes, disc.size.to_string(), dashes, right_pad)
+                write!(f, "{}", disc.repr)
             },
             OptionalDisc::None(i) => {
                 let padding = (0..i * 2 + i.to_string().len() as u8).map(|_| " ").collect::<String>();
@@ -287,5 +275,5 @@ fn display_board(source: &Peg, dest: &Peg, spare: &Peg) {
         println!("|{}|{}|{}|", l, m, r);
     }
     // Sleep to ensure the board isn't redrawn too quickly
-    // thread::sleep(time::Duration::from_millis(100));
+    thread::sleep(time::Duration::from_millis(100));
 }
