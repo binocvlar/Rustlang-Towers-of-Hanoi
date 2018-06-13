@@ -15,12 +15,12 @@ use std::{fmt,thread,time};
 use std::cmp::Ordering;
 use itertools::Itertools;
 use std::process::exit;
-use termion::cursor;
+use termion::{cursor, clear};
 
 /* Types */
 // Add an enum for OptionalDisc:
 //     The `u8` carried by the `Disc::Empty` variant signifies the capacity of the `Peg` (A.K.A the
-//     largest `OptionalDisc` on the `Board`).
+//     largest `Disc` on the `Board`).
 #[derive(Debug, Clone)]
 pub enum OptionalDisc {
     Some(Disc),
@@ -32,14 +32,6 @@ pub enum OptionalDisc {
 pub struct Disc {
     size: u8,
     max: u8,
-}
-
-// `Slot` represents a position on a peg which could contain a `Disc`, but is in fact empty
-//     `capacity` represents the capacity that any `Peg` can hold / the size of the largest `Disc`
-//     `repr` is the string representation of the empty slot
-pub struct Slot {
-    capacity: u8,
-    repr: String,
 }
 
 // Peg represents one of three vertical pegs in a game board
@@ -101,7 +93,7 @@ impl OptionalDisc {
 
     fn get_padding(&self, pad_length: f64) -> (String, String) {
         // This closure simply returns a string commprised of the requested number of spaces
-        let make_padding = |x| (0..x).map(|_| " ").collect::<String>();
+        let make_padding = |x: u32| (0..x).map(|_| " ").collect::<String>();
         let half_pad_len = pad_length / 2.0_f64;
         // Getting the `ceil` of the left value, and the `floor` of the right value is responsible
         // for right-aliging the disc number within each disc representation, when displaying a disc
@@ -129,6 +121,7 @@ impl Peg {
             stack: Vec::with_capacity(capacity as usize),
         }
     }
+
     // This method returns a `Vec<String>` representing each `OptionalDisc` on the peg
     fn get_peg_repr(&self) -> Vec<String> {
         // Convert Vec<Disc> to Iterator of Strings
@@ -177,27 +170,6 @@ impl Ord for Peg {
 // From the [Rust docs](https://doc.rust-lang.org/std/cmp/trait.Eq.html)
 impl Eq for Peg {}
 
-// This trait implementation is unused, and will likely be removed soon. It is unused, as printing a
-// horizontal representation of each `Peg` has not been very useful so far. If I was going to keep
-// this around, I'd likely refactor it to construct an exact-sized iterator of padding, to avoid
-// unnecessarity allocating space, and then having to `take()` the required amount.
-impl fmt::Display for Peg {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        // Get an iterator over a stack of `String`ified `u8`s
-        let discs = self.stack.iter()
-            .map(|x| format!("({})", x.to_string()));
-        // Get a padding iterator, from 0 to Peg.capacity
-        let padding = (0..self.capacity)
-            .map(|_| "-".to_string());
-        // Chain the two iterators together - only take Peg.capacity's worth of elements
-        let loaded_peg = discs.chain(padding)
-            .take(self.capacity as usize)
-            .join("");
-
-        write!(f, "|{:?}: {}", self.label, loaded_peg)
-    }
-}
-
 impl Ord for PegLabel {
     fn cmp(&self, other: &PegLabel) -> Ordering {
         self.cmp(other)
@@ -235,8 +207,12 @@ impl fmt::Display for OptionalDisc {
 
 /* Functions */
 pub fn solve_game(disc_tally: u8) -> Board {
+    if disc_tally < 1 || disc_tally > 59 {
+        eprintln!("Maximum number of Discs must be in the range of 1 - 59 inclusive.");
+        exit(1);
+    }
     // Clear the terminal
-    print!("{}[2J", 27 as char);
+    println!("{}", clear::All);
     let Board {
         mut left,
         mut middle,
@@ -283,9 +259,6 @@ fn move_tower(disc_size: u8, source: &mut Peg, dest: &mut Peg, spare: &mut Peg) 
 
 // `Board` display function
 fn display_board(source: &Peg, dest: &Peg, spare: &Peg) {
-    // Clear the terminal
-    // print!("{}[2J", 27 as char);
-
     // Get the `x` and `y` coordinates of the terminal. This is used in order to "jump back" and
     // redraw the board. This should provide a better appearance than continually redrawing the
     // board. Only the `y` coordinate is important in this case.
@@ -314,5 +287,5 @@ fn display_board(source: &Peg, dest: &Peg, spare: &Peg) {
         println!("|{}|{}|{}|", l, m, r);
     }
     // Sleep to ensure the board isn't redrawn too quickly
-    thread::sleep(time::Duration::from_millis(100));
+    // thread::sleep(time::Duration::from_millis(100));
 }
