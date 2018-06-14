@@ -273,7 +273,7 @@ fn display_board(source: &Peg, dest: &Peg, spare: &Peg) {
     let (source, dest, spare) = (pegs[0], pegs[1], pegs[2]);
 
     // Jump-back to the top of the board
-    print!("{}", cursor::Goto(1, y - source.capacity as u16));
+    print!("{}{}", cursor::Goto(1, y - source.capacity as u16), cursor::Hide);
 
     // (l, m, r) means (left, middle, right)
     for (l, m, r) in izip!(source.get_peg_repr().iter(),
@@ -282,5 +282,5 @@ fn display_board(source: &Peg, dest: &Peg, spare: &Peg) {
         println!("{}{}{}", l, m, r);
     }
     // Sleep to ensure the board isn't redrawn too quickly
-    thread::sleep(time::Duration::from_millis(10));
+    // thread::sleep(time::Duration::from_millis(10));
 }
