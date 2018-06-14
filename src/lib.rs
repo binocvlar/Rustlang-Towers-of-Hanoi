@@ -188,7 +188,12 @@ impl fmt::Display for OptionalDisc {
                 write!(f, "{}", disc.repr)
             },
             OptionalDisc::None(i) => {
-                let padding = (0..i * 2 + i.to_string().len() as u8).map(|_| " ").collect::<String>();
+                let padding_len = (i * 2) as f64 + i.to_string().len() as f64;
+                let (left, right) = Disc::get_padding(padding_len - 1 as f64);
+
+                // EXPERIMENT
+                // let padding = (0..i * 2 + i.to_string().len() as u8).map(|_| " ").collect::<String>();
+                let padding = format!("{}┃{}", left, right);
                 write!(f, "{}", padding)
             },
         }
@@ -274,8 +279,8 @@ fn display_board(source: &Peg, dest: &Peg, spare: &Peg) {
     for (l, m, r) in izip!(source.get_peg_repr().iter(),
                            dest.get_peg_repr().iter(),
                            spare.get_peg_repr().iter()) {
-        println!("┃{}┃{}┃{}┃", l, m, r);
+        println!("{}{}{}", l, m, r);
     }
     // Sleep to ensure the board isn't redrawn too quickly
-    // thread::sleep(time::Duration::from_millis(100));
+    thread::sleep(time::Duration::from_millis(10));
 }
