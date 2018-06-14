@@ -207,7 +207,7 @@ pub fn solve_game(disc_tally: u8) -> Board {
         exit(1);
     }
     // Clear the terminal
-    println!("{}", clear::All);
+    println!("{}{}", clear::All, cursor::Hide);
     let Board {
         mut left,
         mut middle,
@@ -223,6 +223,7 @@ pub fn solve_game(disc_tally: u8) -> Board {
 
     display_board(&left, &middle, &right);
 
+    println!("{}", cursor::Show);
     Board { left, middle, right }
 }
 
@@ -273,7 +274,7 @@ fn display_board(source: &Peg, dest: &Peg, spare: &Peg) {
     let (source, dest, spare) = (pegs[0], pegs[1], pegs[2]);
 
     // Jump-back to the top of the board
-    print!("{}{}", cursor::Goto(1, y - source.capacity as u16), cursor::Hide);
+    print!("{}", cursor::Goto(1, y - source.capacity as u16));
 
     // (l, m, r) means (left, middle, right)
     for (l, m, r) in izip!(source.get_peg_repr().iter(),
