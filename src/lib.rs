@@ -202,8 +202,8 @@ impl fmt::Display for OptionalDisc {
 
 /* Functions */
 pub fn solve_game(disc_tally: u8) -> Board {
-    if disc_tally < 1 || disc_tally > 59 {
-        eprintln!("Maximum number of Discs must be in the range of 1 - 59 inclusive.");
+    if disc_tally < 1 || disc_tally > 32 {
+        eprintln!("Maximum number of Discs must be in the range of 1 - 32 inclusive.");
         exit(1);
     }
     // Clear the terminal
