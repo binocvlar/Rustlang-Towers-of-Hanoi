@@ -1,5 +1,5 @@
 [package]
-name = "hanoi_simple"
+name = "towers_of_hanoi"
 version = "0.1.0"
 authors = ["Richard Phillis <rwphillis@gmail.com>"]
 

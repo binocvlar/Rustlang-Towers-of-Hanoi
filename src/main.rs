@@ -1,8 +1,8 @@
 /* Crates */
-extern crate hanoi_simple;
+extern crate towers_of_hanoi;
 
 /* Imports */
-use hanoi_simple::{solve_game};
+use towers_of_hanoi::{solve_game};
 use std::env;
 use std::process::exit;
 
