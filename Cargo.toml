@@ -6,3 +6,4 @@ authors = ["Richard Phillis <rwphillis@gmail.com>"]
 [dependencies]
 itertools = "0.7.8"
 termion = "1.5.1"
+argparse = "0.2.1"

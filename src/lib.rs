@@ -15,8 +15,22 @@ use std::{fmt,thread,time};
 use std::cmp::Ordering;
 use std::process::exit;
 use termion::{cursor, clear};
+use std::rc::Rc;
+use std::cell::RefCell;
+
+/* Thread Local Storage */
+// Initialise a reference-counted `Config` struct in TLS
+thread_local! {
+    static CONFIG: Rc<Config> = Config::new();
+}
 
 /* Types */
+// Config struct, used for holding global configuration
+pub struct Config {
+    pub game_size: RefCell<u8>,
+    pub refresh_interval: RefCell<u64>,
+}
+
 // Add an enum for OptionalDisc:
 //     The `u8` carried by the `Disc::Empty` variant signifies the capacity of the `Peg` (A.K.A the
 //     largest `Disc` on the `Board`).
@@ -63,6 +77,42 @@ pub struct Board {
 }
 
 /* Implementations */
+impl Config {
+    // Instantiate a new reference-counted `Config` struct, with default values
+    pub fn new() -> Rc<Config> {
+        Rc::new(Config {
+            game_size: RefCell::new(Default::default()),
+            refresh_interval: RefCell::new(Default::default()),
+        })
+    }
+
+    // Takes ownership of the `Rc<Config>` instance in TLS (thread-local
+    // storage)
+    pub fn get_config() -> Rc<Config> {
+        CONFIG.with(|c| c.clone())
+    }
+
+    // Sets the `game_size` member of the `Config` struct
+    pub fn set_game_size(&self, game_size: u8) {
+        *self.game_size.borrow_mut() = game_size;
+    }
+
+    // Sets the `refresh_interval` member of the `Config` struct
+    pub fn set_refresh_interval(&self, refresh_interval: u64) {
+        *self.refresh_interval.borrow_mut() = refresh_interval;
+    }
+
+    // Gets the `game_size` member of the `Config` struct
+    pub fn get_game_size(&self) -> u8 {
+        *self.game_size.borrow()
+    }
+
+    // Gets the `refresh_interval` member of the `Config` struct
+    pub fn get_refresh_interval(&self) -> u64 {
+        *self.refresh_interval.borrow()
+    }
+}
+
 impl Disc {
     // Associated function which constructs a new `Disc`
     fn new(size: u8, max: u8) -> Self {
@@ -204,10 +254,6 @@ impl fmt::Display for OptionalDisc {
 
 /* Functions */
 pub fn solve_game(disc_tally: u8) -> Board {
-    if disc_tally < 1 || disc_tally > 32 {
-        eprintln!("Maximum number of Discs must be in the range of 1 - 32 inclusive.");
-        exit(1);
-    }
     // Clear the terminal
     println!("{}{}", clear::All, cursor::Hide);
     let Board {
@@ -284,6 +330,9 @@ fn display_board(source: &Peg, dest: &Peg, spare: &Peg) {
                            spare.get_peg_repr().iter()) {
         println!("{}{}{}", l, m, r);
     }
+
+    // Get global config
+    let config = Config::get_config();
     // Sleep to ensure the board isn't redrawn too quickly
-    // thread::sleep(time::Duration::from_millis(10));
+    thread::sleep(time::Duration::from_millis(config.get_refresh_interval()));
 }
