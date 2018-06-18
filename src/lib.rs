@@ -166,7 +166,7 @@ impl Peg {
     // Associated function which constructs a `Peg` loaded with `OptionalDisc::None`s
     fn new_empty(label: PegLabel, capacity: u8) -> Self {
         Peg {
-			label,
+            label,
             capacity,
             stack: Vec::with_capacity(capacity as usize),
         }

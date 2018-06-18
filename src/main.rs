@@ -4,14 +4,8 @@ extern crate argparse;
 
 /* Imports */
 use towers_of_hanoi::{solve_game, Config};
-use std::env;
 use std::process::exit;
 use argparse::{ArgumentParser, StoreOption};
-
-// // Initialise a reference-counted `Config` struct in TLS (thread-local storage)
-// thread_local! {
-//     static CONFIG: Rc<Config> = Config::new();
-// }
 
 fn main() {
     /* Handle user arguments */
