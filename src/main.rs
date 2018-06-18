@@ -31,5 +31,5 @@ fn main() {
     };
 
     /* Solve the game */
-    let _solved_board = solve_game(game_size, game_size, refresh_interval);
+    let _solved_board = solve_game(game_size, refresh_interval);
 }

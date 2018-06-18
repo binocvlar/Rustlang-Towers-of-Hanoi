@@ -209,7 +209,7 @@ impl fmt::Display for OptionalDisc {
 }
 
 /* Functions */
-pub fn solve_game(disc_tally: u8, game_size: u8, refresh_interval: u64) -> Board {
+pub fn solve_game(game_size: u8, refresh_interval: u64) -> Board {
     // Constrain the size of user input
     if game_size < 1 || game_size > 32 {
         eprintln!("Maximum number of Discs must be in the range of 1 - 32 inclusive.");
@@ -225,14 +225,14 @@ pub fn solve_game(disc_tally: u8, game_size: u8, refresh_interval: u64) -> Board
         mut left,
         mut middle,
         mut right,
-    } = Board::new(disc_tally);
+    } = Board::new(game_size);
 
     display_board(&left, &middle, &right, Rc::clone(&config));
 
-    // Note that we must subtract `1` from disc_tally, to convert between the number of discs, and
+    // Note that we must subtract `1` from game_size, to convert between the number of discs, and
     // the size of the largest disc (example: 10 discs, 9 is the largest (0-indexed)).
     // If you _don't_ subtract 1, you'll panic thanks to an out-by-one error.
-    move_tower(disc_tally - 1, &mut left, &mut middle, &mut right, Rc::clone(&config));
+    move_tower(game_size - 1, &mut left, &mut middle, &mut right, Rc::clone(&config));
 
     display_board(&left, &middle, &right, Rc::clone(&config));
 
