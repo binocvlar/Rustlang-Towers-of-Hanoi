@@ -247,7 +247,21 @@ impl fmt::Display for OptionalDisc {
 }
 
 /* Functions */
-pub fn solve_game(disc_tally: u8) -> Board {
+pub fn solve_game(disc_tally: u8, game_size: u8, refresh_interval: u64) -> Board {
+    // Constrain the size of user input
+    if game_size < 1 || game_size > 32 {
+        eprintln!("Maximum number of Discs must be in the range of 1 - 32 inclusive.");
+        exit(1);
+    }
+
+    // Get an Rc<Config>
+    let config = Config::get_config();
+
+    // Update our Config struct instance
+    config.set_game_size(game_size);
+    config.set_refresh_interval(refresh_interval);
+
+
     // Clear the terminal
     println!("{}{}", clear::All, cursor::Hide);
     let Board {
