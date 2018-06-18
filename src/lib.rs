@@ -61,7 +61,7 @@ pub struct Peg {
 //
 // "When derived on enums, variants are ordered by their top-to-bottom declaration order."*
 // * From https://doc.rust-lang.org/std/cmp/trait.Ord.html
-#[derive(Debug, Clone, PartialEq, PartialOrd, Eq)]
+#[derive(Debug, Clone, PartialEq, PartialOrd, Eq, Ord)]
 pub enum PegLabel {
     Left,
     Middle,
@@ -218,12 +218,6 @@ impl Ord for Peg {
 //
 // From the [Rust docs](https://doc.rust-lang.org/std/cmp/trait.Eq.html)
 impl Eq for Peg {}
-
-impl Ord for PegLabel {
-    fn cmp(&self, other: &PegLabel) -> Ordering {
-        self.cmp(other)
-    }
-}
 
 impl Board {
     // Associated function (which constructs a `Board`)
