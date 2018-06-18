@@ -16,39 +16,31 @@ use std::cmp::Ordering;
 use std::process::exit;
 use termion::{cursor, clear};
 use std::rc::Rc;
-use std::cell::RefCell;
-
-/* Thread Local Storage */
-// Initialise a reference-counted `Config` struct in TLS
-thread_local! {
-    static CONFIG: Rc<Config> = Config::new();
-}
 
 /* Types */
-// Config struct, used for holding global configuration
-pub struct Config {
-    pub game_size: RefCell<u8>,
-    pub refresh_interval: RefCell<u64>,
+// `Config` struct, used for holding game configuration
+struct Config {
+    refresh_interval: u64,
 }
 
-// Add an enum for OptionalDisc:
+// `OptionalDisc`:
 //     The `u8` carried by the `Disc::Empty` variant signifies the capacity of the `Peg` (A.K.A the
 //     largest `Disc` on the `Board`).
 #[derive(Debug, Clone)]
-pub enum OptionalDisc {
+enum OptionalDisc {
     Some(Disc),
     None(u8),
 }
 
 // Concrete `Disc` type
 #[derive(Debug, Clone)]
-pub struct Disc {
+struct Disc {
     size: u8,
     max: u8,
     repr: String,
 }
 
-// Peg represents one of three vertical pegs in a game board
+// `Peg` represents one of three vertical pegs in a game board
 #[derive(Debug, Clone)]
 pub struct Peg {
     label: PegLabel,
@@ -56,7 +48,7 @@ pub struct Peg {
     stack: Vec<OptionalDisc>,
 }
 
-// PegLabel: The ordering of each variant in the definition below is responsible for the ordering
+// `PegLabel`: The ordering of each variant in the definition below is responsible for the ordering
 // of `Peg`'s within a `Board`:
 //
 // "When derived on enums, variants are ordered by their top-to-bottom declaration order."*
@@ -78,38 +70,8 @@ pub struct Board {
 
 /* Implementations */
 impl Config {
-    // Instantiate a new reference-counted `Config` struct, with default values
-    pub fn new() -> Rc<Config> {
-        Rc::new(Config {
-            game_size: RefCell::new(Default::default()),
-            refresh_interval: RefCell::new(Default::default()),
-        })
-    }
-
-    // Takes ownership of the `Rc<Config>` instance in TLS (thread-local
-    // storage)
-    pub fn get_config() -> Rc<Config> {
-        CONFIG.with(|c| c.clone())
-    }
-
-    // Sets the `game_size` member of the `Config` struct
-    pub fn set_game_size(&self, game_size: u8) {
-        *self.game_size.borrow_mut() = game_size;
-    }
-
-    // Sets the `refresh_interval` member of the `Config` struct
-    pub fn set_refresh_interval(&self, refresh_interval: u64) {
-        *self.refresh_interval.borrow_mut() = refresh_interval;
-    }
-
-    // Gets the `game_size` member of the `Config` struct
-    pub fn get_game_size(&self) -> u8 {
-        *self.game_size.borrow()
-    }
-
-    // Gets the `refresh_interval` member of the `Config` struct
-    pub fn get_refresh_interval(&self) -> u64 {
-        *self.refresh_interval.borrow()
+    fn new(refresh_interval: u64) -> Rc<Config> {
+        Rc::new(Config { refresh_interval })
     }
 }
 
@@ -255,12 +217,7 @@ pub fn solve_game(disc_tally: u8, game_size: u8, refresh_interval: u64) -> Board
     }
 
     // Get an Rc<Config>
-    let config = Config::get_config();
-
-    // Update our Config struct instance
-    config.set_game_size(game_size);
-    config.set_refresh_interval(refresh_interval);
-
+    let config = Config::new(refresh_interval);
 
     // Clear the terminal
     println!("{}{}", clear::All, cursor::Hide);
@@ -270,14 +227,14 @@ pub fn solve_game(disc_tally: u8, game_size: u8, refresh_interval: u64) -> Board
         mut right,
     } = Board::new(disc_tally);
 
-    display_board(&left, &middle, &right);
+    display_board(&left, &middle, &right, Rc::clone(&config));
 
     // Note that we must subtract `1` from disc_tally, to convert between the number of discs, and
     // the size of the largest disc (example: 10 discs, 9 is the largest (0-indexed)).
     // If you _don't_ subtract 1, you'll panic thanks to an out-by-one error.
-    move_tower(disc_tally - 1, &mut left, &mut middle, &mut right);
+    move_tower(disc_tally - 1, &mut left, &mut middle, &mut right, Rc::clone(&config));
 
-    display_board(&left, &middle, &right);
+    display_board(&left, &middle, &right, Rc::clone(&config));
 
     println!("{}", cursor::Show);
     Board { left, middle, right }
@@ -286,31 +243,31 @@ pub fn solve_game(disc_tally: u8, game_size: u8, refresh_interval: u64) -> Board
 // Implements an approximation of the famous algorithm which solves the
 // "Towers of Hanoi" game using recursion. I've yet to determine the original
 // author of this bad boy.
-fn move_tower(disc_size: u8, source: &mut Peg, dest: &mut Peg, spare: &mut Peg) {
+fn move_tower(disc_size: u8, source: &mut Peg, dest: &mut Peg, spare: &mut Peg, config: Rc<Config>) {
     if disc_size == 0 {
         if let Some(i) = source.stack.pop() {
-            display_board(source, dest, spare);
+            display_board(source, dest, spare, Rc::clone(&config));
             dest.stack.push(i);
-            display_board(source, dest, spare);
+            display_board(source, dest, spare, Rc::clone(&config));
         } else {
             panic!("Unable to pop from \"source\" stack!");
         }
     } else {
-        move_tower(disc_size - 1, source, spare, dest);
+        move_tower(disc_size - 1, source, spare, dest, Rc::clone(&config));
         if let Some(i) = source.stack.pop() {
-            display_board(source, dest, spare);
+            display_board(source, dest, spare, Rc::clone(&config));
             dest.stack.push(i);
-            display_board(source, dest, spare);
+            display_board(source, dest, spare, Rc::clone(&config));
         } else {
             panic!("Unable to pop from \"source\" stack!");
         }
-        move_tower(disc_size - 1, spare, dest, source);
-        display_board(source, dest, spare);
+        move_tower(disc_size - 1, spare, dest, source, Rc::clone(&config));
+        display_board(source, dest, spare, Rc::clone(&config));
     }
 }
 
 // `Board` display function
-fn display_board(source: &Peg, dest: &Peg, spare: &Peg) {
+fn display_board(source: &Peg, dest: &Peg, spare: &Peg, config: Rc<Config>) {
     // Get the `x` and `y` coordinates of the terminal. This is used in order to "jump back" and
     // redraw the board. This should provide a better appearance than continually redrawing the
     // board. Only the `y` coordinate is important in this case.
@@ -340,7 +297,7 @@ fn display_board(source: &Peg, dest: &Peg, spare: &Peg) {
     }
 
     // Get global config
-    let config = Config::get_config();
+    // let config = Config::get_config();
     // Sleep to ensure the board isn't redrawn too quickly
-    thread::sleep(time::Duration::from_millis(config.get_refresh_interval()));
+    thread::sleep(time::Duration::from_millis(config.refresh_interval));
 }
