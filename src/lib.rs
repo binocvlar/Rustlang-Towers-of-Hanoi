@@ -1,11 +1,3 @@
-/* Ideas */
-/*
- * Given that we know that completion time is on the order of (2**n - 1),
- * I could take a user issued sleep time, and provide an estimated time to
- * completion. Perhaps even a count-down timer and/or progress bar?
- *
- */
-
 /* Crates */
 #[macro_use] extern crate itertools;
 extern crate termion;
@@ -42,7 +34,7 @@ struct Disc {
 
 // `Peg` represents one of three vertical pegs in a game board
 #[derive(Debug, Clone)]
-pub struct Peg {
+struct Peg {
     label: PegLabel,
     capacity: u8,
     stack: Vec<OptionalDisc>,
@@ -54,7 +46,7 @@ pub struct Peg {
 // "When derived on enums, variants are ordered by their top-to-bottom declaration order."*
 // * From https://doc.rust-lang.org/std/cmp/trait.Ord.html
 #[derive(Debug, Clone, PartialEq, PartialOrd, Eq, Ord)]
-pub enum PegLabel {
+enum PegLabel {
     Left,
     Middle,
     Right,
@@ -62,11 +54,11 @@ pub enum PegLabel {
 
 // `Board` represents a fixed configuration of three pegs
 #[derive(Debug, Clone)]
-pub struct Board {
-    pub left: Peg,
-    pub middle: Peg,
-    pub right: Peg,
-}
+struct Board (
+    Peg,
+    Peg,
+    Peg,
+);
 
 /* Implementations */
 impl Config {
@@ -115,7 +107,7 @@ impl Disc {
 
 impl Peg {
     // Associated function which constructs a `Peg` loaded with `OptionalDisc::Some`s
-    pub fn new(label: PegLabel, capacity: u8) -> Self {
+    fn new(label: PegLabel, capacity: u8) -> Self {
         Peg {
             label,
             capacity,
@@ -184,11 +176,11 @@ impl Eq for Peg {}
 impl Board {
     // Associated function (which constructs a `Board`)
     fn new(capacity: u8) -> Self {
-        Board {
-            left: Peg::new(PegLabel::Left, capacity),
-            middle: Peg::new_empty(PegLabel::Middle, capacity),
-            right: Peg::new_empty(PegLabel::Right, capacity),
-        }
+        Board (
+            Peg::new(PegLabel::Left, capacity),
+            Peg::new_empty(PegLabel::Middle, capacity),
+            Peg::new_empty(PegLabel::Right, capacity),
+        )
     }
 }
 
@@ -209,7 +201,7 @@ impl fmt::Display for OptionalDisc {
 }
 
 /* Functions */
-pub fn solve_game(game_size: u8, refresh_interval: u64) -> Board {
+pub fn solve_game(game_size: u8, refresh_interval: u64) {
     // Constrain the size of user input
     if game_size < 1 || game_size > 32 {
         eprintln!("Maximum number of Discs must be in the range of 1 - 32 inclusive.");
@@ -221,11 +213,11 @@ pub fn solve_game(game_size: u8, refresh_interval: u64) -> Board {
 
     // Clear the terminal
     println!("{}{}", clear::All, cursor::Hide);
-    let Board {
+    let Board (
         mut left,
         mut middle,
         mut right,
-    } = Board::new(game_size);
+    ) = Board::new(game_size);
 
     display_board(&left, &middle, &right, Rc::clone(&config));
 
@@ -237,7 +229,6 @@ pub fn solve_game(game_size: u8, refresh_interval: u64) -> Board {
     display_board(&left, &middle, &right, Rc::clone(&config));
 
     println!("{}", cursor::Show);
-    Board { left, middle, right }
 }
 
 // Implements an approximation of the famous algorithm which solves the
@@ -269,8 +260,7 @@ fn move_tower(disc_size: u8, source: &mut Peg, dest: &mut Peg, spare: &mut Peg, 
 // `Board` display function
 fn display_board(source: &Peg, dest: &Peg, spare: &Peg, config: Rc<Config>) {
     // Get the `x` and `y` coordinates of the terminal. This is used in order to "jump back" and
-    // redraw the board. This should provide a better appearance than continually redrawing the
-    // board. Only the `y` coordinate is important in this case.
+    // redraw the board. Only the `y` coordinate is important in this case.
     let x_y_coords = termion::terminal_size();
 
     let (_, y) = match x_y_coords {
@@ -296,8 +286,6 @@ fn display_board(source: &Peg, dest: &Peg, spare: &Peg, config: Rc<Config>) {
         println!("{}{}{}", l, m, r);
     }
 
-    // Get global config
-    // let config = Config::get_config();
     // Sleep to ensure the board isn't redrawn too quickly
     thread::sleep(time::Duration::from_millis(config.refresh_interval));
 }
