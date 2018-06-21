@@ -70,11 +70,14 @@ impl Config {
 impl Disc {
     // Associated function which constructs a new `Disc`
     fn new(size: u8, max: u8) -> Self {
+        let label_len = size.to_string().len() as u8;
+        let disc_width = 2 * size + label_len - (label_len - 1);
 
-        let disc_width = 2 * size + size.to_string().len() as u8; // - (disc_label_len as u8 - 1);
+        // Construct the representation of the Disc (e.g. "--2--")
         let disc_repr = format!(" {:▬^width$}", size, width = disc_width as usize);
 
-        let total_width = 2 * max + max.to_string().len() as u8; // + 1;
+        // Pad the disc_repr with whitespace (e.g. " --2-- " for a 4 disc game)
+        let total_width = 2 * max + max.to_string().len() as u8;
         let repr = format!("{:^width$}", disc_repr, width = total_width as usize);
         Disc {
             size,
