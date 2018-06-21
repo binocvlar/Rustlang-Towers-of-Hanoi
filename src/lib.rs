@@ -191,10 +191,7 @@ impl fmt::Display for OptionalDisc {
                 write!(f, "{}", disc.repr)
             },
             OptionalDisc::None(i) => {
-                let padding_len = (i * 2) as f64 + i.to_string().len() as f64;
-                let (left, right) = Disc::get_padding(padding_len - 1 as f64);
-                let padding = format!("{}┃{}", left, right);
-                write!(f, "{}", padding)
+                write!(f, "{:^width$}", " ┃", width = (*i as usize * 2) + i.to_string().len())
             },
         }
     }
