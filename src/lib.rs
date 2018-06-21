@@ -70,38 +70,17 @@ impl Config {
 impl Disc {
     // Associated function which constructs a new `Disc`
     fn new(size: u8, max: u8) -> Self {
-        // Contains a `String` of dashes, e.g. "--------"
-        let dashes = (0..size).map(|_| "▬").collect::<String>();
 
-        // FIXME: Display this if terminal does NOT suppot UTF8
-        // let dashes = (0..size).map(|_| "-").collect::<String>();
-        // Contains the width of the representation of the largest `Disc`
-        let max_width = max * 2 + max.to_string().len() as u8;
+        let disc_width = 2 * size + size.to_string().len() as u8; // - (disc_label_len as u8 - 1);
+        let disc_repr = format!(" {:▬^width$}", size, width = disc_width as usize);
 
-        // How much total whitespace padding is required, in order for this `Disc` to line up properly
-        let total_pad_len = max_width - 2 * dashes.chars().count() as u8 - size.to_string().len() as u8;
-
-        // Contains the whitespace on either side of the `Disc` (can differ by 1).
-        let (left_pad, right_pad) = Disc::get_padding(total_pad_len as f64);
-
-        // Contains the total textual representation of the new `Disc`
-        let repr = format!("{}{}{}{}{}", left_pad, dashes, size.to_string(), dashes, right_pad);
+        let total_width = 2 * max + max.to_string().len() as u8; // + 1;
+        let repr = format!("{:^width$}", disc_repr, width = total_width as usize);
         Disc {
             size,
             max,
             repr,
         }
-    }
-
-    // Return example: ("   ", "  ")
-    fn get_padding(pad_length: f64) -> (String, String) {
-        // This closure simply returns a string comprised of the requested number of spaces
-        let make_padding = |x: u32| (0..x).map(|_| " ").collect::<String>();
-        let half_pad_len = pad_length / 2.0_f64;
-
-        // Getting the `ceil` of the left value, and the `floor` of the right value is responsible
-        // for right-aliging the disc number within each disc representation, when displaying a disc
-        (make_padding(half_pad_len.ceil() as u32), make_padding(half_pad_len.floor() as u32))
     }
 }
 
