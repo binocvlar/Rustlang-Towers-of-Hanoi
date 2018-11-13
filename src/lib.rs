@@ -203,7 +203,7 @@ pub fn solve_game(game_size: u8, refresh_interval: u64) {
     // Note that we must subtract `1` from game_size, to convert between the number of discs, and
     // the size of the largest disc (example: 10 discs, 9 is the largest (0-indexed)).
     // If you _don't_ subtract 1, you'll panic thanks to an out-by-one error.
-    move_tower(game_size - 1, &mut left, &mut middle, &mut right, Rc::clone(&config));
+    move_tower(game_size - 1, &mut left, &mut right, &mut middle, Rc::clone(&config));
 
     display_board(&left, &middle, &right, Rc::clone(&config));
 
