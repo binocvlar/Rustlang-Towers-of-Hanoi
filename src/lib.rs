@@ -7,12 +7,18 @@ use std::{fmt,thread,time};
 use std::cmp::Ordering;
 use std::process::exit;
 use termion::{cursor, clear};
-use std::rc::Rc;
 
 /* Types */
 // `Config` struct, used for holding game configuration
 struct Config {
+    game_size: u8,
     refresh_interval: u64,
+}
+
+impl Config {
+    fn new(game_size: u8, refresh_interval: u64) -> Self {
+        Config { game_size, refresh_interval }
+    }
 }
 
 // `OptionalDisc`:
@@ -30,41 +36,6 @@ struct Disc {
     size: u8,
     max: u8,
     repr: String,
-}
-
-// `Peg` represents one of three vertical pegs in a game board
-#[derive(Debug, Clone)]
-struct Peg {
-    label: PegLabel,
-    capacity: u8,
-    stack: Vec<OptionalDisc>,
-}
-
-// `PegLabel`: The ordering of each variant in the definition below is responsible for the ordering
-// of `Peg`'s within a `Board`:
-//
-// "When derived on enums, variants are ordered by their top-to-bottom declaration order."*
-// * From https://doc.rust-lang.org/std/cmp/trait.Ord.html
-#[derive(Debug, Clone, PartialEq, PartialOrd, Eq, Ord)]
-enum PegLabel {
-    Left,
-    Middle,
-    Right,
-}
-
-// `Board` represents a fixed configuration of three pegs
-#[derive(Debug, Clone)]
-struct Board (
-    Peg,
-    Peg,
-    Peg,
-);
-
-/* Implementations */
-impl Config {
-    fn new(refresh_interval: u64) -> Rc<Config> {
-        Rc::new(Config { refresh_interval })
-    }
 }
 
 impl Disc {
@@ -85,6 +56,14 @@ impl Disc {
             repr,
         }
     }
+}
+
+// `Peg` represents one of three vertical pegs in a game board
+#[derive(Debug, Clone)]
+struct Peg {
+    label: PegLabel,
+    capacity: u8,
+    stack: Vec<OptionalDisc>,
 }
 
 impl Peg {
@@ -144,6 +123,26 @@ impl Ord for Peg {
     }
 }
 
+// `PegLabel`: The ordering of each variant in the definition below is responsible for the ordering
+// of `Peg`'s within a `Board`:
+//
+// "When derived on enums, variants are ordered by their top-to-bottom declaration order."*
+// * From https://doc.rust-lang.org/std/cmp/trait.Ord.html
+#[derive(Debug, Clone, PartialEq, PartialOrd, Eq, Ord)]
+enum PegLabel {
+    Left,
+    Middle,
+    Right,
+}
+
+// `Board` represents a fixed configuration of three pegs
+#[derive(Debug, Clone)]
+struct Board (
+    Peg,
+    Peg,
+    Peg,
+);
+
 // Note that I have implemented the `Eq` trait here, rather than derived it, as deriving it would
 // necessitate that all `Peg` struct members would need to implement this trait as well.
 // From the docs:
@@ -188,7 +187,7 @@ pub fn solve_game(game_size: u8, refresh_interval: u64) {
     }
 
     // Get an Rc<Config>
-    let config = Config::new(refresh_interval);
+    let config = Config::new(game_size, refresh_interval);
 
     // Clear the terminal
     println!("{}{}", clear::All, cursor::Hide);
@@ -198,14 +197,14 @@ pub fn solve_game(game_size: u8, refresh_interval: u64) {
         mut right,
     ) = Board::new(game_size);
 
-    display_board(&left, &middle, &right, Rc::clone(&config));
+    display_board(&left, &middle, &right, &config);
 
     // Note that we must subtract `1` from game_size, to convert between the number of discs, and
     // the size of the largest disc (example: 10 discs, 9 is the largest (0-indexed)).
     // If you _don't_ subtract 1, you'll panic thanks to an out-by-one error.
-    move_tower(game_size - 1, &mut left, &mut right, &mut middle, Rc::clone(&config));
+    move_tower(game_size - 1, &mut left, &mut right, &mut middle, &config);
 
-    display_board(&left, &middle, &right, Rc::clone(&config));
+    display_board(&left, &middle, &right, &config);
 
     println!("{}", cursor::Show);
 }
@@ -213,31 +212,31 @@ pub fn solve_game(game_size: u8, refresh_interval: u64) {
 // Implements an approximation of the famous algorithm which solves the
 // "Towers of Hanoi" game using recursion. I've yet to determine the original
 // author of this bad boy.
-fn move_tower(disc_size: u8, source: &mut Peg, dest: &mut Peg, spare: &mut Peg, config: Rc<Config>) {
+fn move_tower(disc_size: u8, source: &mut Peg, dest: &mut Peg, spare: &mut Peg, config: &Config) {
     if disc_size == 0 {
         if let Some(i) = source.stack.pop() {
-            display_board(source, dest, spare, Rc::clone(&config));
+            display_board(source, dest, spare, &config);
             dest.stack.push(i);
-            display_board(source, dest, spare, Rc::clone(&config));
+            display_board(source, dest, spare, &config);
         } else {
             panic!("Unable to pop from \"source\" stack!");
         }
     } else {
-        move_tower(disc_size - 1, source, spare, dest, Rc::clone(&config));
+        move_tower(disc_size - 1, source, spare, dest, &config);
         if let Some(i) = source.stack.pop() {
-            display_board(source, dest, spare, Rc::clone(&config));
+            display_board(source, dest, spare, &config);
             dest.stack.push(i);
-            display_board(source, dest, spare, Rc::clone(&config));
+            display_board(source, dest, spare, &config);
         } else {
             panic!("Unable to pop from \"source\" stack!");
         }
-        move_tower(disc_size - 1, spare, dest, source, Rc::clone(&config));
-        display_board(source, dest, spare, Rc::clone(&config));
+        move_tower(disc_size - 1, spare, dest, source, &config);
+        display_board(source, dest, spare, &config);
     }
 }
 
 // `Board` display function
-fn display_board(source: &Peg, dest: &Peg, spare: &Peg, config: Rc<Config>) {
+fn display_board(source: &Peg, dest: &Peg, spare: &Peg, config: &Config) {
     // Get the `x` and `y` coordinates of the terminal. This is used in order to "jump back" and
     // redraw the board. Only the `y` coordinate is important in this case.
     let x_y_coords = termion::terminal_size();
