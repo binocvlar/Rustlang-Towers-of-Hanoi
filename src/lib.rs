@@ -10,14 +10,23 @@ use termion::{cursor, clear};
 
 /* Types */
 // `Config` struct, used for holding game configuration
+#[derive(Debug)]
 struct Config {
     game_size: u8,
     refresh_interval: u64,
+    empty_slot_repr: String,
 }
 
 impl Config {
     fn new(game_size: u8, refresh_interval: u64) -> Self {
-        Config { game_size, refresh_interval }
+
+        // write!(f, "{:^width$}", " ┃", width = (*i as usize * 2) + i.to_string().len())
+        Config {
+            game_size,
+            refresh_interval,
+            empty_slot_repr: format!("{:^width$}", " ┃", width = (game_size as usize * 2) + game_size.to_string().len()),
+        }
+
     }
 }
 
@@ -25,9 +34,9 @@ impl Config {
 //     The `u8` carried by the `Disc::Empty` variant signifies the capacity of the `Peg` (A.K.A the
 //     largest `Disc` on the `Board`).
 #[derive(Debug, Clone)]
-enum OptionalDisc {
+enum OptionalDisc<'a> {
     Some(Disc),
-    None(u8),
+    None(&'a Config),
 }
 
 // Concrete `Disc` type
@@ -60,18 +69,19 @@ impl Disc {
 
 // `Peg` represents one of three vertical pegs in a game board
 #[derive(Debug, Clone)]
-struct Peg {
+// FIXME: Add a lifetime specifier for the borrowed Config within the OptionalDisc
+struct Peg<'a> {
     label: PegLabel,
     capacity: u8,
-    stack: Vec<OptionalDisc>,
+    stack: Vec<OptionalDisc<'a>>,
 }
 
-impl Peg {
+impl<'a> Peg<'a> {
     // Associated function which constructs a `Peg` loaded with `OptionalDisc::Some`s
     fn new(label: PegLabel, capacity: u8) -> Self {
         Peg {
             label,
-            capacity,
+            capacity: capacity,
             stack: (0..capacity).map(|x| OptionalDisc::Some(Disc::new(x, capacity)))
                                 .rev()
                                 .collect::<Vec<_>>(),
@@ -82,13 +92,13 @@ impl Peg {
     fn new_empty(label: PegLabel, capacity: u8) -> Self {
         Peg {
             label,
-            capacity,
+            capacity: capacity,
             stack: Vec::with_capacity(capacity as usize),
         }
     }
 
     // This method returns a `Vec<String>` representing each `OptionalDisc` on the peg
-    fn get_peg_repr(&self) -> Vec<String> {
+    fn get_peg_repr(&self, config: &Config) -> Vec<String> {
         // Convert Vec<Disc> to Iterator of Strings
         let discs = self.stack.iter()
                               .map(|x| format!("{}", x))
@@ -98,27 +108,27 @@ impl Peg {
         //
         // Note that I'm collecting into a Vec<String>, as attempting to return
         // the iterator directly yields a terribly long return type...
-        (0..(self.capacity as usize - self.stack.len()))
-            .map(|_| format!("{}", OptionalDisc::None(self.capacity)))
+        (0..(config.game_size as usize - self.stack.len()))
+            .map(|_| format!("{}", OptionalDisc::None(config)))
             .chain(discs)
             .collect::<Vec<_>>()
     }
 }
 
-impl PartialOrd for Peg {
-    fn partial_cmp(&self, other: &Peg) -> Option<Ordering> {
+impl<'a> PartialOrd for Peg<'a> {
+    fn partial_cmp(&self, other: &Peg<'a>) -> Option<Ordering> {
         self.label.partial_cmp(&other.label)
     }
 }
 
-impl PartialEq for Peg {
-    fn eq(&self, other: &Peg) -> bool {
+impl<'a> PartialEq for Peg<'a> {
+    fn eq(&self, other: &Peg<'a>) -> bool {
         self.label == other.label
     }
 }
 
-impl Ord for Peg {
-    fn cmp(&self, other: &Peg) -> Ordering {
+impl<'a> Ord for Peg<'a> {
+    fn cmp(&self, other: &Peg<'a>) -> Ordering {
         self.label.cmp(&other.label)
     }
 }
@@ -137,10 +147,10 @@ enum PegLabel {
 
 // `Board` represents a fixed configuration of three pegs
 #[derive(Debug, Clone)]
-struct Board (
-    Peg,
-    Peg,
-    Peg,
+struct Board<'a> (
+    Peg<'a>,
+    Peg<'a>,
+    Peg<'a>,
 );
 
 // Note that I have implemented the `Eq` trait here, rather than derived it, as deriving it would
@@ -152,9 +162,9 @@ struct Board (
 // relation. Note that the derive strategy requires all fields are Eq, which isn't always desired."
 //
 // From the [Rust docs](https://doc.rust-lang.org/std/cmp/trait.Eq.html)
-impl Eq for Peg {}
+impl<'a> Eq for Peg<'a> {}
 
-impl Board {
+impl<'a> Board<'a> {
     // Associated function (which constructs a `Board`)
     fn new(capacity: u8) -> Self {
         Board (
@@ -165,14 +175,15 @@ impl Board {
     }
 }
 
-impl fmt::Display for OptionalDisc {
+impl<'a> fmt::Display for OptionalDisc<'a> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             OptionalDisc::Some(disc) => {
                 write!(f, "{}", disc.repr)
             },
-            OptionalDisc::None(i) => {
-                write!(f, "{:^width$}", " ┃", width = (*i as usize * 2) + i.to_string().len())
+            OptionalDisc::None(slot) => {
+                // write!(f, "{:^width$}", " ┃", width = (*i as usize * 2) + i.to_string().len())
+                write!(f, "{}", slot.empty_slot_repr)
             },
         }
     }
@@ -195,7 +206,7 @@ pub fn solve_game(game_size: u8, refresh_interval: u64) {
         mut left,
         mut middle,
         mut right,
-    ) = Board::new(game_size);
+    ) = Board::new(config.game_size);
 
     display_board(&left, &middle, &right, &config);
 
@@ -212,7 +223,7 @@ pub fn solve_game(game_size: u8, refresh_interval: u64) {
 // Implements an approximation of the famous algorithm which solves the
 // "Towers of Hanoi" game using recursion. I've yet to determine the original
 // author of this bad boy.
-fn move_tower(disc_size: u8, source: &mut Peg, dest: &mut Peg, spare: &mut Peg, config: &Config) {
+fn move_tower<'a>(disc_size: u8, source: &mut Peg<'a>, dest: &mut Peg<'a>, spare: &mut Peg<'a>, config: &Config) {
     if disc_size == 0 {
         if let Some(i) = source.stack.pop() {
             display_board(source, dest, spare, &config);
@@ -258,9 +269,9 @@ fn display_board(source: &Peg, dest: &Peg, spare: &Peg, config: &Config) {
     print!("{}", cursor::Goto(1, y - source.capacity as u16));
 
     // (l, m, r) means (left, middle, right)
-    for (l, m, r) in izip!(source.get_peg_repr().iter(),
-                           dest.get_peg_repr().iter(),
-                           spare.get_peg_repr().iter()) {
+    for (l, m, r) in izip!(source.get_peg_repr(config).iter(),
+                           dest.get_peg_repr(config).iter(),
+                           spare.get_peg_repr(config).iter()) {
         println!("{}{}{}", l, m, r);
     }
 
