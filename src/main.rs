@@ -3,7 +3,7 @@ extern crate towers_of_hanoi;
 extern crate argparse;
 
 /* Imports */
-use towers_of_hanoi::solve_game;
+use towers_of_hanoi::{solve_game, Config};
 use argparse::{ArgumentParser, StoreOption};
 
 fn main() {
@@ -30,6 +30,15 @@ fn main() {
         None => 0,
     };
 
+    // Constrain the size of user input
+    if game_size < 1 || game_size > 32 {
+        eprintln!("Maximum number of Discs must be in the range of 1 - 32 inclusive.");
+        std::process::exit(1);
+    }
+
+    // Get a Config type
+    let config = Config::new(game_size, refresh_interval);
+
     /* Solve the game */
-    solve_game(game_size, refresh_interval);
+    solve_game(&config);
 }

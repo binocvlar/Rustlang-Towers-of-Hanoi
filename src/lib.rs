@@ -1,5 +1,5 @@
 /* Crates */
-#[macro_use] extern crate itertools;
+extern crate itertools;
 extern crate termion;
 
 /* Imports */
@@ -7,20 +7,19 @@ use std::{fmt,thread,time};
 use std::cmp::Ordering;
 use std::process::exit;
 use termion::{cursor, clear};
+use itertools::izip;
 
 /* Types */
 // `Config` struct, used for holding game configuration
 #[derive(Debug)]
-struct Config {
+pub struct Config {
     game_size: u8,
     refresh_interval: u64,
     empty_slot_repr: String,
 }
 
 impl Config {
-    fn new(game_size: u8, refresh_interval: u64) -> Self {
-
-        // write!(f, "{:^width$}", " ┃", width = (*i as usize * 2) + i.to_string().len())
+    pub fn new(game_size: u8, refresh_interval: u64) -> Self {
         Config {
             game_size,
             refresh_interval,
@@ -31,8 +30,6 @@ impl Config {
 }
 
 // `OptionalDisc`:
-//     The `u8` carried by the `Disc::Empty` variant signifies the capacity of the `Peg` (A.K.A the
-//     largest `Disc` on the `Board`).
 #[derive(Debug, Clone)]
 enum OptionalDisc<'a> {
     Some(Disc),
@@ -69,7 +66,6 @@ impl Disc {
 
 // `Peg` represents one of three vertical pegs in a game board
 #[derive(Debug, Clone)]
-// FIXME: Add a lifetime specifier for the borrowed Config within the OptionalDisc
 struct Peg<'a> {
     label: PegLabel,
     capacity: u8,
@@ -147,11 +143,11 @@ enum PegLabel {
 
 // `Board` represents a fixed configuration of three pegs
 #[derive(Debug, Clone)]
-struct Board<'a> (
-    Peg<'a>,
-    Peg<'a>,
-    Peg<'a>,
-);
+struct Board<'a> {
+    left: Peg<'a>,
+    middle: Peg<'a>,
+    right: Peg<'a>,
+}
 
 // Note that I have implemented the `Eq` trait here, rather than derived it, as deriving it would
 // necessitate that all `Peg` struct members would need to implement this trait as well.
@@ -167,11 +163,11 @@ impl<'a> Eq for Peg<'a> {}
 impl<'a> Board<'a> {
     // Associated function (which constructs a `Board`)
     fn new(capacity: u8) -> Self {
-        Board (
-            Peg::new(PegLabel::Left, capacity),
-            Peg::new_empty(PegLabel::Middle, capacity),
-            Peg::new_empty(PegLabel::Right, capacity),
-        )
+        Board {
+            left: Peg::new(PegLabel::Left, capacity),
+            middle: Peg::new_empty(PegLabel::Middle, capacity),
+            right: Peg::new_empty(PegLabel::Right, capacity),
+        }
     }
 }
 
@@ -190,32 +186,19 @@ impl<'a> fmt::Display for OptionalDisc<'a> {
 }
 
 /* Functions */
-pub fn solve_game(game_size: u8, refresh_interval: u64) {
-    // Constrain the size of user input
-    if game_size < 1 || game_size > 32 {
-        eprintln!("Maximum number of Discs must be in the range of 1 - 32 inclusive.");
-        exit(1);
-    }
-
-    // Get an Rc<Config>
-    let config = Config::new(game_size, refresh_interval);
-
+pub fn solve_game(config: &Config) {
     // Clear the terminal
     println!("{}{}", clear::All, cursor::Hide);
-    let Board (
-        mut left,
-        mut middle,
-        mut right,
-    ) = Board::new(config.game_size);
+    let mut board = Board::new(config.game_size);
 
-    display_board(&left, &middle, &right, &config);
+    display_board(&board.left, &board.middle, &board.right, &config);
 
     // Note that we must subtract `1` from game_size, to convert between the number of discs, and
     // the size of the largest disc (example: 10 discs, 9 is the largest (0-indexed)).
     // If you _don't_ subtract 1, you'll panic thanks to an out-by-one error.
-    move_tower(game_size - 1, &mut left, &mut right, &mut middle, &config);
+    move_tower(config.game_size - 1, &mut board.left, &mut board.right, &mut board.middle, config);
 
-    display_board(&left, &middle, &right, &config);
+    display_board(&board.left, &board.middle, &board.right, config);
 
     println!("{}", cursor::Show);
 }
@@ -226,23 +209,23 @@ pub fn solve_game(game_size: u8, refresh_interval: u64) {
 fn move_tower<'a>(disc_size: u8, source: &mut Peg<'a>, dest: &mut Peg<'a>, spare: &mut Peg<'a>, config: &Config) {
     if disc_size == 0 {
         if let Some(i) = source.stack.pop() {
-            display_board(source, dest, spare, &config);
+            display_board(source, dest, spare, config);
             dest.stack.push(i);
-            display_board(source, dest, spare, &config);
+            display_board(source, dest, spare, config);
         } else {
             panic!("Unable to pop from \"source\" stack!");
         }
     } else {
-        move_tower(disc_size - 1, source, spare, dest, &config);
+        move_tower(disc_size - 1, source, spare, dest, config);
         if let Some(i) = source.stack.pop() {
-            display_board(source, dest, spare, &config);
+            display_board(source, dest, spare, config);
             dest.stack.push(i);
-            display_board(source, dest, spare, &config);
+            display_board(source, dest, spare, config);
         } else {
             panic!("Unable to pop from \"source\" stack!");
         }
-        move_tower(disc_size - 1, spare, dest, source, &config);
-        display_board(source, dest, spare, &config);
+        move_tower(disc_size - 1, spare, dest, source, config);
+        display_board(source, dest, spare, config);
     }
 }
 
@@ -263,15 +246,15 @@ fn display_board(source: &Peg, dest: &Peg, spare: &Peg, config: &Config) {
     // Sort the borrowed `Peg`s
     let mut pegs = [source, dest, spare];
     pegs.sort();
-    let (source, dest, spare) = (pegs[0], pegs[1], pegs[2]);
+    let (left, middle, right) = (pegs[0], pegs[1], pegs[2]);
 
     // Jump-back to the top of the board
-    print!("{}", cursor::Goto(1, y - source.capacity as u16));
+    print!("{}", cursor::Goto(1, y - config.game_size as u16));
 
     // (l, m, r) means (left, middle, right)
-    for (l, m, r) in izip!(source.get_peg_repr(config).iter(),
-                           dest.get_peg_repr(config).iter(),
-                           spare.get_peg_repr(config).iter()) {
+    for (l, m, r) in izip!(left.get_peg_repr(config).iter(),
+                           middle.get_peg_repr(config).iter(),
+                           right.get_peg_repr(config).iter()) {
         println!("{}{}{}", l, m, r);
     }
 
