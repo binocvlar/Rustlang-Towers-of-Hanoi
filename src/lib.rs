@@ -39,8 +39,6 @@ enum OptionalDisc<'a> {
 // Concrete `Disc` type
 #[derive(Debug, Clone)]
 struct Disc {
-    size: u8,
-    max: u8,
     repr: String,
 }
 
@@ -57,8 +55,6 @@ impl Disc {
         let total_width = 2 * max + max.to_string().len() as u8;
         let repr = format!("{:^width$}", disc_repr, width = total_width as usize);
         Disc {
-            size,
-            max,
             repr,
         }
     }
@@ -68,7 +64,6 @@ impl Disc {
 #[derive(Debug, Clone)]
 struct Peg<'a> {
     label: PegLabel,
-    capacity: u8,
     stack: Vec<OptionalDisc<'a>>,
 }
 
@@ -77,7 +72,6 @@ impl<'a> Peg<'a> {
     fn new(label: PegLabel, capacity: u8) -> Self {
         Peg {
             label,
-            capacity: capacity,
             stack: (0..capacity).map(|x| OptionalDisc::Some(Disc::new(x, capacity)))
                                 .rev()
                                 .collect::<Vec<_>>(),
@@ -88,7 +82,6 @@ impl<'a> Peg<'a> {
     fn new_empty(label: PegLabel, capacity: u8) -> Self {
         Peg {
             label,
-            capacity: capacity,
             stack: Vec::with_capacity(capacity as usize),
         }
     }
